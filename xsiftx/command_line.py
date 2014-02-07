@@ -43,6 +43,31 @@ def get_sifters():
 
     return sifter_list
 
+def get_course_list(venv, edx_root):
+    """
+    Get a list of courses by using the management commands in edx.
+    """
+
+    # Grab course list
+    try:
+        course_raw = subprocess.check_output(
+            ['{0}/bin/python'.format(venv),
+             'manage.py', 'lms', '--settings=aws',
+             'dump_course_ids', ],
+            cwd=edx_root
+        )
+    except OSError as ex:
+        sys.stderr.write(
+            'No such file or directory: {0!r}\n'.format(str(ex))
+        )
+        sys.exit(-1)
+
+    except subprocess.CalledProcessError as ex:
+        sys.stderr.write(
+            'Course listing failed, output was: {0!r}\n'.format(ex.output)
+        )
+        sys.exit(-1)
+    return course_raw.split('\n')
 
 def execute():
     """
@@ -75,31 +100,12 @@ def execute():
         sys.stderr.write("You have specified a sifter that doesn't exist\n")
         sys.exit(-1)
 
-    # Grab course list
-    try:
-        course_raw = subprocess.check_output(
-            ['{0}/bin/python'.format(args.venv),
-             'lms', '--settings=aws', 'dump_course_ids', ],
-            cwd=args.edx_platform
-        )
-    except OSError as ex:
-        sys.stderr.write(
-            'No such file or directory: {0!r}\n'.format(str(ex))
-        )
-        sys.exit(-1)
-
-    except subprocess.CalledProcessError as ex:
-        sys.stderr.write(
-            'Course listing failed, output was: {0!r}\n'.format(ex.output)
-        )
-        sys.exit(-1)
-    courses = course_raw.split('\n')
-
+    courses = get_course_list(args.venv, args.edx_platform)
     # If course specified, make sure the edx platform has that class
     if args.course:
-        if ars.course not in courses:
+        if args.course not in courses:
             sys.stderr.write(
-                "Course doesn't exist, please pick from:{0}\n".format(
+                "Course doesn't exist, please pick from:\n{0}\n".format(
                     '\n'.join(courses)
                 )
             )
