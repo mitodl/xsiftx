@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# This is just a sample sifter that simply outputs a text file
+# to test the xsiftx gears.
+echo "test_sifter.txt"
+echo "Hello Class, I was made with xsiftx from https://github.com/mitocw/xsiftx"
+echo "Here are the arguments I got: $@"
