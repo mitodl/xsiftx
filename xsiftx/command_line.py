@@ -13,17 +13,23 @@ johnsmith,things
 .
 .
 
-The script is passed the virtualenv path, edx root path, and any
+The script is passed the virtualenv path, edx root path, course id, and any
 extra arguments that were passed to sifter
 """
 
 import argparse
+import json
 import os
 import stat
 import subprocess
 import sys
+import tempfile
 
 import xsiftx.sifters
+import xsiftx.store
+
+ENV_JSON_FILENAME = 'lms.env.json'
+AUTH_JSON_FILENAME = 'lms.auth.json'
 
 def get_sifters():
     """
@@ -69,6 +75,42 @@ def get_course_list(venv, edx_root):
         sys.exit(-1)
     return course_raw.split('\n')
 
+def get_settings(venv, edx_root):
+    """
+    This will pull out the json settings for the
+    platform in order to get the bucket, path, key_id, and key
+    for uploading to the right place and return them as a dict.
+    """
+    with open(os.path.abspath('{0}/../{1}'.format(edx_root, AUTH_JSON_FILENAME))) as auth_file:
+        auth_tokens = json.load(auth_file)
+
+    with open(os.path.abspath('{0}/../{1}'.format(edx_root, ENV_JSON_FILENAME))) as env_file:
+        env_tokens = json.load(env_file)
+
+    settings = {}
+    use_s3 = True
+
+    grades_download = env_tokens['GRADES_DOWNLOAD']
+    if grades_download['STORAGE_TYPE'] != 'S3':
+        use_s3 = False
+
+    bucket = grades_download['BUCKET']
+    root_path = grades_download['ROOT_PATH']
+
+
+    aws_key_id = auth_tokens['AWS_ACCESS_KEY_ID']
+    if aws_key_id == '' and use_s3:
+        sys.stderr.write('No AWS_ACCESS_KEY_ID\n')
+        sys.exit(-2)
+
+    aws_key = auth_tokens["AWS_SECRET_ACCESS_KEY"]
+    if aws_key == '' and use_s3:
+        sys.stderr.write('No AWS_SECRET_ACCESS_KEY\n')
+        sys.exit(-2)
+
+    return dict(aws_key=aws_key, aws_key_id=aws_key_id,
+                bucket=bucket, root_path=root_path, use_s3=use_s3)
+
 def execute():
     """
     Begin command processing
@@ -111,9 +153,43 @@ def execute():
             )
             sys.exit(-1)
 
+    settings = get_settings(args.venv, args.edx_platform)
+
+    # Everything is all setup, now run the sifter and write the output to the grade
+    # download location.
+    print(settings)
     print(args.course)
     print(args.venv)
     print(args.edx_platform)
+    print(args.extra_args)
+    sifter_path = '{0}/{1}'.format(os.path.dirname(xsiftx.sifters.__file__),
+                                   args.sifter)
+
+    data_store = None
+    if settings['use_s3']:
+        data_store = xsiftx.store.S3Store(settings)
+    else:
+        data_store = xsiftx.store.FSStore(settings)
+
+    courses_to_run = []
+    if args.course:
+        courses_to_run = [args.course, ]
+    else:
+        courses_to_run = courses
+    for course in courses:
+        with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+            sift = subprocess.Popen(
+                [ sifter_path, args.venv, args.edx_platform, course,
+                  args.extra_args, ],
+                shell=True,
+                stdout=tmpfile,
+                universal_newlines=True
+                )
+            ret_code = sift.wait()
+            tmpfile.flush()
+            tmpfile.seek(0)
+            filename = tmpfile.readline()
+            data_store.store(course, filename, tmpfile)
     
 if __name__ == '__main__':
     execute()
