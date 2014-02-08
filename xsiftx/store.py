@@ -29,15 +29,15 @@ class FSStore(object):
 
     def store(self, course_id, filename, srcfile):
         """
-        Actually writes out the file from wherever srcfile has been 
+        Actually writes out the file from wherever srcfile has been
         seeked to.
         """
         full_path = self.path_for(course_id, filename)
         directory = os.path.dirname(full_path)
         if not os.path.exists(directory):
             os.makedirs(directory, 0o755)
-        with open(full_path, "wb") as f:
-            f.write(srcfile.read())
+        with open(full_path, "wb") as output_file:
+            output_file.write(srcfile.read())
 
 
 class S3Store(object):
