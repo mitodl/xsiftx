@@ -78,7 +78,7 @@ class S3Store(object):
         key = self.key_for(course_id, filename)
 
         type_guess = mimetypes.guess_type(filename)
-        data = output_buffer.getvalue()
+        data = srcfile.read()
         key.size = len(data)
         key.content_type = type_guess[0]
         key.content_encoding = type_guess[1]
