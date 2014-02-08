@@ -36,6 +36,7 @@ setup(
     ]},
     zip_safe=False,
     requires=('boto (>=2.13.3)',),
+    install_requires=['boto >= 2.13.3',],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: edX Platform',

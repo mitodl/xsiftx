@@ -1,0 +1,19 @@
+#!/bin/bash
+# Use internal django command to dump grade csv and
+# export that to course downloads. Type is required
+dumptype="$4"
+if ! [[ "$dumptype" == "raw" || "$dumptype" == "all" ]]; then
+	echo "The type of grade dump is required and must be raw or all" >&2
+	exit -1
+fi
+tmpcsv=$(mktemp)
+cd $2
+$1/bin/python manage.py lms --settings=aws dump_grades $3 $tmpcsv $dumptype > /dev/null
+if [ $? -ne 0 ]; then
+	echo "The django command failed" >&2
+	exit -2
+fi
+
+echo "grades_${dumptype}_$(date +"%Y-%m-%dT%H:%M").csv"
+cat $tmpcsv
+rm $tmpcsv

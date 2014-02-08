@@ -73,7 +73,7 @@ def get_course_list(venv, edx_root):
             'Course listing failed, output was: {0!r}\n'.format(ex.output)
         )
         sys.exit(-1)
-    return course_raw.split('\n')
+    return course_raw.split('\n')[:-1]
 
 def get_settings(venv, edx_root):
     """
@@ -157,14 +157,8 @@ def execute():
 
     # Everything is all setup, now run the sifter and write the output to the grade
     # download location.
-    print(settings)
-    print(args.course)
-    print(args.venv)
-    print(args.edx_platform)
-    print(args.extra_args)
     sifter_path = '{0}/{1}'.format(os.path.dirname(xsiftx.sifters.__file__),
                                    args.sifter)
-
     data_store = None
     if settings['use_s3']:
         data_store = xsiftx.store.S3Store(settings)
@@ -176,19 +170,18 @@ def execute():
         courses_to_run = [args.course, ]
     else:
         courses_to_run = courses
-    for course in courses:
+    for course in courses_to_run:
         with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-            sift = subprocess.Popen(
-                [ sifter_path, args.venv, args.edx_platform, course,
-                  args.extra_args, ],
-                shell=True,
-                stdout=tmpfile,
-                universal_newlines=True
-                )
+            cmd = [ sifter_path, args.venv, args.edx_platform, course, ]
+            cmd.extend(args.extra_args)
+            sift = subprocess.Popen(cmd, stdout=tmpfile, universal_newlines=True)
             ret_code = sift.wait()
+            if ret_code != 0:
+                sys.stderr.write('Sifter failed with non zero exit code, aborting\n')
+                sys.exit(-3)
             tmpfile.flush()
             tmpfile.seek(0)
-            filename = tmpfile.readline()
+            filename = tmpfile.readline()[:-1]
             data_store.store(course, filename, tmpfile)
     
 if __name__ == '__main__':

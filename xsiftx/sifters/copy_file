@@ -1,0 +1,11 @@
+#!/bin/bash
+# This copies whatever file is passed in to it to stdout to be picked up
+# by xsiftx
+
+file="$4"
+if [ ! -f "$file" ]; then
+	echo "Path specified does not exist or is a directory." >&2
+	exit -1
+fi
+echo $(basename "$file")
+cat $file
