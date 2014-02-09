@@ -27,4 +27,5 @@ def enter_lms(venv_path, edx_path):
     sys.path.append(edx_path)
     os.environ['DJANGO_SETTINGS_MODULE'] = 'lms.envs.aws'
     os.environ['SERVICE_VARIANT'] = 'lms'
-    # from django.conf import settings
+    import lms.startup as startup
+    startup.run()

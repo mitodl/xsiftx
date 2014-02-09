@@ -15,7 +15,7 @@ from collections import OrderedDict
 from request_cache.middleware import RequestCache
 
 from courseware.views import *
-from courseware.access import get_access_group_name
+from student.roles import CourseStaffRole
 from django.conf import settings
 from django.core.cache import get_cache
 from django.dispatch import Signal
@@ -58,7 +58,7 @@ class CourseAxis(object):
                 module = self.ms.get_item(loc)
                 self.walk_tree(module)
             except Exception as err:
-                sys.stderr.write("Failed to get module {0}".format(loc))
+                sys.stderr.write("Failed to get module {0}\n".format(loc))
 
 
     def compute_statistics(self):
@@ -67,13 +67,13 @@ class CourseAxis(object):
         differentiate those with empty state
         '''
         self.stats = OrderedDict()
-        staffgroup = get_access_group_name(self.course, 'staff')
+        staff_role = CourseStaffRole(self.course.location)
         for node in self.modules:
             smq = StudentModule.objects.filter(
                 module_state_key=node.location, student__is_staff=False
             )
-            smq_staff = smq.filter(student__groups__name=staffgroup)
-            smq_student = smq.exclude(student__groups__name=staffgroup)
+            smq_staff = smq.filter(student__in=staff_role.users_with_role())
+            smq_student = smq.exclude(student__in=staff_role.users_with_role())
 
             naccess = smq_student.count()
             nengaged = smq_student.exclude(state='{}').count()
@@ -116,8 +116,8 @@ class CourseAxis(object):
                 writer.writerow(row)
             except Exception as err:
                 sys.stderr.write("Oops, failed to write, "
-                                 "error={0!r}".format(err))
-        fp.close()
+                                 "error={0!r}\n".format(err))
+                sys.exit(-1)
 
 
 if __name__ == "__main__":
@@ -127,16 +127,16 @@ if __name__ == "__main__":
                 "nengaged, location for all modules in the course.  \n"
                 "Arguments: filename.csv")
 
-    if not sys.argv[4]:
-        sys.stderr.write('Usage:\n{0}\n'.format(help))
+    if not len(sys.argv) == 5:
+        sys.stderr.write('Usage:\n{0}\n'.format(help_txt))
         sys.stderr.write('A file name must be specified for output.\n')
         sys.exit(-1)
     filename = sys.argv[4]
     if not filename.endswith('.csv'):
-        sys.stderr.write('Usage:\n{0}\n'.format(help))
+        sys.stderr.write('Usage:\n{0}\n'.format(help_txt))
         sys.stderr.write('File name must end in .csv\n')
         sys.exit(-1)
-    course_id = args[3]
+    course_id = sys.argv[3]
     ca = CourseAxis(course_id)
     output_buf = StringIO.StringIO()
     ca.dump_csv(output_buf)
