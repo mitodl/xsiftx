@@ -1,0 +1,144 @@
+#!/usr/bin/env python
+"""
+This script will generate a csv of course content statistics.
+"""
+
+import csv
+import StringIO
+import sys
+
+# Setup environment here, before importing project specific stuff
+from xsiftx.tools import enter_lms
+enter_lms(sys.argv[1], sys.argv[2])
+
+from collections import OrderedDict
+from request_cache.middleware import RequestCache
+
+from courseware.views import *
+from courseware.access import get_access_group_name
+from django.conf import settings
+from django.core.cache import get_cache
+from django.dispatch import Signal
+from xmodule.modulestore.django import modulestore
+
+
+CACHE = get_cache('mongo_metadata_inheritance')
+for store_name in settings.MODULESTORE:
+    store = modulestore(store_name)
+    store.metadata_inheritance_cache_subsystem = CACHE
+    store.request_cache = RequestCache.get_request_cache()
+
+    modulestore_update_signal = Signal(providing_args=[
+        'modulestore', 'course_id', 'location'
+    ])
+    store.modulestore_update_signal = modulestore_update_signal
+
+
+class CourseAxis(object):
+    def __init__(self, course_id):
+        '''
+        course_id should be eg: MITx/3.091r/2013_Fall
+        '''
+        self.course_id = course_id
+        self.loc = '%s/%s/course/%s' % tuple(course_id.split('/'))
+        self.ms = modulestore()
+        self.course = self.ms.get_item('i4x://%s' % self.loc)
+        self.modules = []
+        self.walk_tree(self.course)
+        self.compute_statistics()
+
+
+    def walk_tree(self, node):
+        '''
+        walk the course tree and store as flat list in presented order
+        '''
+        self.modules.append(node)
+        for loc in node.children:
+            try:
+                module = self.ms.get_item(loc)
+                self.walk_tree(module)
+            except Exception as err:
+                sys.stderr.write("Failed to get module {0}".format(loc))
+
+
+    def compute_statistics(self):
+        '''
+        Find number of StudentModule instances for each module - and
+        differentiate those with empty state
+        '''
+        self.stats = OrderedDict()
+        staffgroup = get_access_group_name(self.course, 'staff')
+        for node in self.modules:
+            smq = StudentModule.objects.filter(
+                module_state_key=node.location, student__is_staff=False
+            )
+            smq_staff = smq.filter(student__groups__name=staffgroup)
+            smq_student = smq.exclude(student__groups__name=staffgroup)
+
+            naccess = smq_student.count()
+            nengaged = smq_student.exclude(state='{}').count()
+
+            naccess_staff = smq_staff.count()
+            nengaged_staff = smq_staff.exclude(state='{}').count()
+
+            loc = str(node.location).replace('i4x://%s/' % (
+                self.course_id.rsplit('/', 1)[0]), '')
+            self.stats[node.location] = {
+                'naccess': naccess, 'nengaged': nengaged,
+                'display_name': node.display_name,
+                'location': loc, 'category': node.category,
+                'naccess_staff': naccess_staff,
+                'nengaged_staff': nengaged_staff,
+            }
+
+    def dump_csv(self, fp):
+        '''
+        Dump statistics as a CSV file
+        fp = file pointer (open and available for writing)
+        '''
+        fieldnames = [
+            'category',
+            'display_name',
+            'naccess',
+            'nengaged',
+            'location',
+            'naccess_staff',
+            'nengaged_staff'
+        ]
+        writer = csv.DictWriter(
+            fp, fieldnames,
+            dialect='excel', quotechar='"',
+            quoting=csv.QUOTE_ALL
+        )
+        writer.writeheader()
+        for row in self.stats.values():
+            try:
+                writer.writerow(row)
+            except Exception as err:
+                sys.stderr.write("Oops, failed to write, "
+                                 "error={0!r}".format(err))
+        fp.close()
+
+
+if __name__ == "__main__":
+
+    help_txt = ("Generate CSV file with course content usage statistics; "
+                "CSV file columns are category, display_name, naccess, "
+                "nengaged, location for all modules in the course.  \n"
+                "Arguments: filename.csv")
+
+    if not sys.argv[4]:
+        sys.stderr.write('Usage:\n{0}\n'.format(help))
+        sys.stderr.write('A file name must be specified for output.\n')
+        sys.exit(-1)
+    filename = sys.argv[4]
+    if not filename.endswith('.csv'):
+        sys.stderr.write('Usage:\n{0}\n'.format(help))
+        sys.stderr.write('File name must end in .csv\n')
+        sys.exit(-1)
+    course_id = args[3]
+    ca = CourseAxis(course_id)
+    output_buf = StringIO.StringIO()
+    ca.dump_csv(output_buf)
+    print(filename)
+    print(output_buf.getvalue())
