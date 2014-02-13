@@ -117,8 +117,6 @@ class CourseAxis(object):
             except Exception as err:
                 sys.stderr.write("Oops, failed to write, "
                                  "error={0!r}\n".format(err))
-                sys.exit(-1)
-
 
 if __name__ == "__main__":
 
