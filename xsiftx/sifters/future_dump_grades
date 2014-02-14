@@ -244,7 +244,11 @@ if __name__ == "__main__":
                                                get_raw_scores=get_raw_scores)
     fp = StringIO.StringIO()
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
-    writer.writerow(datatable['header'])
+    try:
+        writer.writerow([unicode(s).encode('utf-8') for s in datatable['header']])
+    except Exception as err:
+        sys.stderr.write("Oops, failed to write csv row, "
+                         "error={0!r}\n".format(err))
     for datarow in datatable['data']:
         try:
             encoded_row = [unicode(s).encode('utf-8') for s in datarow]

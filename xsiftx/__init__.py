@@ -18,4 +18,4 @@ as the first three arguments.  All other arguments passed to xsiftx.py are
 passed along as is.
 """
 
-VERSION = "0.0.4"
+VERSION = "0.0.5"
