@@ -24,6 +24,7 @@ from request_cache.middleware import RequestCache
 from courseware.courses import get_course_by_id
 from instructor.offline_gradecalc import (student_grades,
                                           offline_grades_available)
+from instructor.utils import DummyRequest
 from student.models import CourseEnrollment, CourseEnrollmentAllowed
 from xmodule.modulestore.django import modulestore
 
@@ -197,27 +198,6 @@ def get_student_grade_summary_data(request, course, course_id,
     datatable['data'] = data
     return datatable
 
-class DummyUser(object):
-    """
-    Mock a dummy user to use inside dummy request
-    """
-    def __init__(self):
-        return
-
-class DummyRequest(object):
-    """
-    Simple class used to mock a Django request
-    object for use in calling functions that require one/
-    """
-    META = {}
-    user = DummyUser()
-    session = {}
-    def __init__(self):
-        return
-    def get_host(self):
-        return 'edx.mit.edu'
-    def is_secure(self):
-        return False
 
 if __name__ == "__main__":
     help_txt = ("dump grades to CSV file.  Usage: future_dump_grades "
@@ -266,6 +246,11 @@ if __name__ == "__main__":
     writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
     writer.writerow(datatable['header'])
     for datarow in datatable['data']:
-        encoded_row = [unicode(s).encode('utf-8') for s in datarow]
-        writer.writerow(encoded_row)
+        try:
+            encoded_row = [unicode(s).encode('utf-8') for s in datarow]
+            writer.writerow(encoded_row)
+        except Exception as err:
+            sys.stderr.write("Oops, failed to write csv row, "
+                             "error={0!r}\n".format(err))
+
     print(fp.getvalue())
