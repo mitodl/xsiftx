@@ -98,8 +98,9 @@ def execute():
                                         universal_newlines=True)
                 ret_code = sift.wait()
                 if ret_code != 0:
-                    sys.stderr.write('Sifter failed with non zero exit code'
-                                     'printing output and aborting\n')
+                    sys.stderr.write('Sifter {0} called with {1} failed '
+                                     'with non zero exit code printing output '
+                                     'and aborting\n'.format(args.sifter, cmd))
                     stderr_tmp.flush()
                     stderr_tmp.seek(0)
                     sys.stderr.write(stderr_tmp.read())
