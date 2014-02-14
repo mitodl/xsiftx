@@ -43,7 +43,7 @@ def get_course_list(venv, edx_root):
             ['{0}/bin/python'.format(venv),
              'manage.py', 'lms', '--settings=aws',
              'dump_course_ids', ],
-            cwd=edx_root
+            cwd=edx_root, stderr=subprocess.PIPE
         )
     except OSError as ex:
         sys.stderr.write(
