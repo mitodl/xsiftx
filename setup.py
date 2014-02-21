@@ -1,5 +1,5 @@
 """
-Primarily jacked from Django's setup.py
+Package information and dependencies
 """
 import os
 import sys
@@ -25,10 +25,11 @@ setup(
     version=version,
     url='http://odl.mit.edu',
     author='MITx',
-    author_email='mitx-help@mit.edu',
+    author_email='mitx-devops@mit.edu',
     description=('Program for running data collection scripts against courses '
-                 'and putting the results in the instructor dashboard'),
-    license='Proprietary',
+                 'and putting the results in the instructor dashboard of the '
+                 'local edx-platform instance'),
+    license='GNU General Public License v3 (GPLv3)',
     packages=find_packages(exclude=EXCLUDE_FROM_PACKAGES),
     include_package_data=True,
     entry_points={'console_scripts': [
@@ -39,9 +40,10 @@ setup(
     install_requires=['boto >= 2.13.3',],
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'Environment :: edX Platform',
+        'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: Proprietary :: Proprietary',
+        'Intended Audience :: Education',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
