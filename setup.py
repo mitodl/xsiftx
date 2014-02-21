@@ -23,7 +23,7 @@ version = __import__('xsiftx').VERSION
 setup(
     name='xsiftx',
     version=version,
-    url='http://odl.mit.edu',
+    url='http://github.com/mitocw/xsiftx',
     author='MITx',
     author_email='mitx-devops@mit.edu',
     description=('Program for running data collection scripts against courses '
@@ -36,7 +36,6 @@ setup(
         'xsiftx = xsiftx.command_line:execute',
     ]},
     zip_safe=False,
-    requires=('boto (>=2.13.3)',),
     install_requires=['boto >= 2.13.3',],
     classifiers=[
         'Development Status :: 3 - Alpha',
