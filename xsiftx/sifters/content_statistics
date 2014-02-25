@@ -53,6 +53,8 @@ class CourseAxis(object):
         walk the course tree and store as flat list in presented order
         '''
         self.modules.append(node)
+        if getattr(node, 'children',None) is None:
+            return
         for loc in node.children:
             try:
                 module = self.ms.get_item(loc)
