@@ -50,13 +50,13 @@ code base.
 
 Several sifters are provided in this repository:
 
-# `dump_grades` -- dumps grades of all students to a CSV file.  The
+1. `dump_grades` -- dumps grades of all students to a CSV file.  The
 grades can both be the aggregated grades (as defined by the edX
 graders configuration) or raw grades (un-aggregated grades for
 individual problems).  Being able to dump raw grades can be very
 helpful to instructors who are debugging edX graders configurations.
 
-# `content_statistics` -- dumps a CSV file with course content usage
+2. `content_statistics` -- dumps a CSV file with course content usage
 statistics, including, information about each module in the course,
 how many times it has been accessed, and now many times it has been
 attempted (for problems).
