@@ -45,3 +45,19 @@ enter_lms(sys.argv[1], sys.argv[2])
 As you can see, this basically allows you to write a django management command as
 though it were inside the platform without having to incoporate it directly into the
 code base.
+
+## Sifters provided ##
+
+Several sifters are provided in this repository:
+
+# `dump_grades` -- dumps grades of all students to a CSV file.  The
+grades can both be the aggregated grades (as defined by the edX
+graders configuration) or raw grades (un-aggregated grades for
+individual problems).  Being able to dump raw grades can be very
+helpful to instructors who are debugging edX graders configurations.
+
+# `content_statistics` -- dumps a CSV file with course content usage
+statistics, including, information about each module in the course,
+how many times it has been accessed, and now many times it has been
+attempted (for problems).
+
