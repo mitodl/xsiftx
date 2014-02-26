@@ -1,0 +1,257 @@
+#!/usr/bin/env python
+"""
+This script generates a zipfile of csv files of student responses to problems
+"""
+
+import os
+import json
+import csv
+import re
+import sys
+import shutil
+import tempfile
+import datetime
+import zipfile
+import glob
+
+# Setup environment here, before importing project specific stuff
+from xsiftx.tools import enter_lms
+enter_lms(sys.argv[1], sys.argv[2])
+
+from collections import OrderedDict
+from django.conf import settings
+from django.core.cache import get_cache
+from django.dispatch import Signal
+from request_cache.middleware import RequestCache
+
+from courseware.views import *
+from xmodule.modulestore.django import modulestore
+
+
+CACHE = get_cache('mongo_metadata_inheritance')
+for store_name in settings.MODULESTORE:
+    store = modulestore(store_name)
+    store.metadata_inheritance_cache_subsystem = CACHE
+    store.request_cache = RequestCache.get_request_cache()
+
+    modulestore_update_signal = Signal(providing_args=[
+        'modulestore', 'course_id', 'location',
+    ])
+    store.modulestore_update_signal = modulestore_update_signal
+
+
+class CourseAxis(object):
+    def __init__(self, course_id):
+        '''
+        course_id should be eg: MITx/3.091r/2013_Fall
+        '''
+        self.course_id = course_id
+        self.loc = '{0}/{1}/course/{2}'.format(*course_id.split('/'))
+        self.ms = modulestore()
+        self.course = self.ms.get_item('i4x://{0}'.format(self.loc))
+        self.modules = []
+        self.walk_tree(self.course)
+
+    def walk_tree(self, node):
+        '''
+        walk the course tree and store as flat list in presented order
+        '''
+        self.modules.append(node)
+        if getattr(node, 'children', None) is None:
+            return
+        for loc in node.children:
+            try:
+                module = self.ms.get_item(str(loc))
+                self.walk_tree(module)
+            except Exception as err:
+                sys.stderr.write("Failed to get module {0}, "
+                                 "error={0!r}".format(loc, err))
+
+    def get_problems(self):
+        '''
+        Return list of modules which are problems
+        '''
+        problems = []
+        cnt = 0
+        for module in self.modules:
+            if module.category in ['problem']:
+                problems.append(module)
+                module.sequence_number = cnt
+                cnt += 1
+        return problems
+
+
+class XProblemAnalyzer(object):
+    def __init__(self, course_id, output_fn, dropEmpty=True, do_zip=False):
+        self.course_id = course_id
+        self.ca = CourseAxis(course_id)
+        self.dropEmpty = dropEmpty
+        self.problems = self.ca.get_problems()
+        if do_zip:
+            tmpdir = tempfile.mkdtemp(prefix="xqa")
+            dirname = '{0}/student_responses_{1}_{2}'.format(
+                tmpdir,
+                course_id.replace('/', '__'),
+                datetime.datetime.now().strftime('%Y-%m-%d')
+            )
+            os.mkdir(dirname)
+            self.output_fn = "{0}/xqa".format(dirname)
+        else:
+            self.output_fn = output_fn
+        cnt = 0
+        for problem in self.problems:
+            self.process_problem(problem)
+            cnt += 1
+        if do_zip:
+            self.zip_up_files(dirname, output_fn, tmpdir)
+
+    def zip_up_files(self, dirname, zipfn, tmpdir):
+        '''
+        Zip up files stored in dirname
+        '''
+        dbn = os.path.basename(dirname)
+        with zipfile.ZipFile(zipfn, 'w') as zf:
+            for fn in glob.glob('{0}/*.csv'.format(dirname)):
+                zf.write(fn, '{0}/{1}'.format(dbn, os.path.basename(fn)))
+        sys.stderr.write("Wrote zip file {0}".format(zipfn))
+        # remove temporary directory
+        try:
+            shutil.rmtree(tmpdir)
+        except Exception as err:
+            sys.stderr.write("Error deleting temporary directory {0}, "
+                             "err={1}".format(tmpdir, err))
+
+    def process_problem(self, problem):
+        '''
+        Load student state for problem.  Output CSV file with all student
+        responses to that problem.
+
+        '''
+        smset = StudentModule.objects.filter(
+            module_state_key=str(problem.location),
+            course_id=self.course_id
+        )
+        self.smset = smset
+        # reset state to being empty
+        self.data = OrderedDict()
+        self.questions = []
+        for sm in smset:
+            self.ParseState(sm)
+        ofn = '{0}__{1.sequence_number:03d}__{1.location.name}.csv'.format(
+            self.output_fn,
+            problem
+        )
+        if self.data:
+            # dump to CSV output file
+            self.dump_simple_csv(ofn)
+
+    def ParseState(self, entry):
+        '''
+        Given student state CSV line, a dict with username and state JSON,
+        parse state JSON and store in self.data[username].
+
+        Extract question names, and store in list of questions
+        (self.questions).
+        '''
+        username = entry.student
+        state = json.loads(entry.state)
+        state['dt_created'] = entry.created
+        state['module_grade'] = entry.grade
+        if not 'student_answers' in state:
+            return
+        self.data[username] = state
+        for qname in state['student_answers']:
+            if not qname in self.questions:
+                self.questions.append(qname)
+                self.questions.sort()
+
+    def simpqname(self, qname):
+        '''
+        Generate simpler question name from the full question name stored
+        by capa problems in student state JSON.
+        '''
+        m = re.search('.*_([0-9]+_[0-9]+)', qname)
+        if m:
+            return m.group(1)
+        else:
+            return "Error parsing {0}".format(qname)
+
+    def simple_data(self):
+        '''
+        Produce simplified data reprsentation of loaded student response
+        data (self.data).  The simplified representation is a list of
+        ordered dicts.  Each ordered dict has the student and question
+        responses defined.  The ordered dicts are suitable for output
+        to a CSV file using DictWriter.
+        '''
+        qnames = OrderedDict([(x, self.simpqname(x)) for x in self.questions])
+        sdata = []
+        for student in self.data:
+            sdent = self.data[student]
+            od = OrderedDict(student=student)
+            od['dt'] = str(sdent['dt_created'])
+            od['grade'] = sdent['module_grade']
+            allNone = True
+            for qname, sqname in qnames.iteritems():
+                response = sdent['student_answers'].get(qname, None)
+                if type(response) == list:
+                    # for multi-answer multiple-choice
+                    response = str(response)
+                if response is not None:
+                    try:
+                        response = response.encode('utf8')
+                    except Exception as err:
+                        sys.stderr.write("Oops. cannot parse student "
+                                         "response {0}".format(response))
+                        sys.stderr.write("student={0}".format(student))
+                        sys.stderr.write("answers="
+                                         "{student_answers}".format(**sdent))
+                        raise
+                    allNone = False
+                od[sqname] = response
+            if not (allNone and self.dropEmpty):
+                sdata.append(od)
+        return sdata
+
+    def dump_simple_csv(self, fn):
+        '''
+        Dump student responses to questions to an output CSV file, named fn.
+        '''
+        sdata = self.simple_data()
+        if not sdata:
+            return
+        writer = csv.DictWriter(open(fn, 'w'), sdata[0].keys(),
+                                dialect='excel', quotechar='"')
+        writer.writeheader()
+        writer.writerows(sdata)
+
+if __name__ == "__main__":
+
+    help_txt = ("Generate ZIP file with CSV files of student responses to "
+                "problems; Each CSV file has columns student, "
+                "date_time_created, grade, responses...\n"
+                "Arguments: filename.zip")
+
+    if not len(sys.argv) == 5:
+        sys.stderr.write('Usage:\n{0}\n'.format(help_txt))
+        sys.stderr.write('A *.zip file name must be specified for output.\n')
+        sys.exit(-1)
+    filename = sys.argv[4]
+    if not filename.endswith('.zip'):
+        sys.stderr.write('Usage:\n{0}\n'.format(help_txt))
+        sys.stderr.write('File name must end in .zip\n')
+        sys.exit(-1)
+    course_id = sys.argv[3]
+
+    tfp = tempfile.NamedTemporaryFile(
+        prefix="xqa",
+        suffix=".zip",
+        mode='w',
+        delete=False
+    )
+    tfp.close()
+    xpa = XProblemAnalyzer(course_id, tfp.name, do_zip=True)
+
+    print(filename)
+    print(open(tfp.name).read())
+    os.unlink(tfp.name)
