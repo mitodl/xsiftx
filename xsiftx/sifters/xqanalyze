@@ -89,7 +89,8 @@ class XProblemAnalyzer(object):
         self.problems = self.ca.get_problems()
         self.csv_cnt = 0
         if not self.problems:
-            sys.stderr.write('Course {0} has no problems, not generating output\n'.format(course_id))
+            sys.stderr.write('Course {0} has no problems, not generating '
+                             'output\n'.format(course_id))
             return 
         if do_zip:
             tmpdir = tempfile.mkdtemp(prefix="xqa")
@@ -258,9 +259,10 @@ if __name__ == "__main__":
     xpa = XProblemAnalyzer(course_id, tfp.name, do_zip=True)
 
     if not xpa.csv_cnt:
-        sys.stderr.write('Course {0} has no problems, not generating output\n'.format(course_id))
+        sys.stderr.write('Course {0} has no problems, not generating '
+                         'output\n'.format(course_id))
         os.unlink(tfp.name)
-        sys.exit(-1)
+        sys.exit(0)
 
     print(filename)
     print(open(tfp.name).read())
