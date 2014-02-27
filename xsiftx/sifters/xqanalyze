@@ -65,7 +65,7 @@ class CourseAxis(object):
                 self.walk_tree(module)
             except Exception as err:
                 sys.stderr.write("Failed to get module {0}, "
-                                 "error={0!r}".format(loc, err))
+                                 "error={0!r}\n".format(loc, err))
 
     def get_problems(self):
         '''
@@ -87,6 +87,11 @@ class XProblemAnalyzer(object):
         self.ca = CourseAxis(course_id)
         self.dropEmpty = dropEmpty
         self.problems = self.ca.get_problems()
+        self.csv_cnt = 0
+        if not self.problems:
+            sys.stderr.write('Course {0} has no problems, not generating '
+                             'output\n'.format(course_id))
+            return 
         if do_zip:
             tmpdir = tempfile.mkdtemp(prefix="xqa")
             dirname = '{0}/student_responses_{1}_{2}'.format(
@@ -113,13 +118,13 @@ class XProblemAnalyzer(object):
         with zipfile.ZipFile(zipfn, 'w') as zf:
             for fn in glob.glob('{0}/*.csv'.format(dirname)):
                 zf.write(fn, '{0}/{1}'.format(dbn, os.path.basename(fn)))
-        sys.stderr.write("Wrote zip file {0}".format(zipfn))
+        sys.stderr.write("Wrote zip file {0}\n".format(zipfn))
         # remove temporary directory
         try:
             shutil.rmtree(tmpdir)
         except Exception as err:
             sys.stderr.write("Error deleting temporary directory {0}, "
-                             "err={1}".format(tmpdir, err))
+                             "err={1}\n".format(tmpdir, err))
 
     def process_problem(self, problem):
         '''
@@ -202,10 +207,10 @@ class XProblemAnalyzer(object):
                         response = response.encode('utf8')
                     except Exception as err:
                         sys.stderr.write("Oops. cannot parse student "
-                                         "response {0}".format(response))
-                        sys.stderr.write("student={0}".format(student))
+                                         "response {0}\n".format(response))
+                        sys.stderr.write("student={0}\n".format(student))
                         sys.stderr.write("answers="
-                                         "{student_answers}".format(**sdent))
+                                         "{student_answers}\n".format(**sdent))
                         raise
                     allNone = False
                 od[sqname] = response
@@ -224,6 +229,7 @@ class XProblemAnalyzer(object):
                                 dialect='excel', quotechar='"')
         writer.writeheader()
         writer.writerows(sdata)
+        self.csv_cnt += 1
 
 if __name__ == "__main__":
 
@@ -251,6 +257,12 @@ if __name__ == "__main__":
     )
     tfp.close()
     xpa = XProblemAnalyzer(course_id, tfp.name, do_zip=True)
+
+    if not xpa.csv_cnt:
+        sys.stderr.write('Course {0} has no problems, not generating '
+                         'output\n'.format(course_id))
+        os.unlink(tfp.name)
+        sys.exit(0)
 
     print(filename)
     print(open(tfp.name).read())

@@ -108,8 +108,9 @@ def execute():
                     continue
                 tmpfile.flush()
                 tmpfile.seek(0)
-                filename = tmpfile.readline()[:-1]
-                data_store.store(course, filename, tmpfile)
+                if os.fstat(tmpfile.fileno()).st_size > 0:
+                    filename = tmpfile.readline()[:-1]
+                    data_store.store(course, filename, tmpfile)
 
 if __name__ == '__main__':
     execute()
