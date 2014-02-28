@@ -46,6 +46,20 @@ As you can see, this basically allows you to write a django management command a
 though it were inside the platform without having to incoporate it directly into the
 code base.
 
+This does require that GRADE_DOWNLOADS are turned on in your edx-platform install to show up. Sample settings for lms.env.json would look like:
+```javascript
+    "GRADES_DOWNLOAD": {
+        "BUCKET": "my-sample-bucket", 
+        "ROOT_PATH": "term/grades", 
+        "STORAGE_TYPE": "S3"
+    },
+```
+with the following FEATURE flags set in that same file:
+```javascript
+"ALLOW_COURSE_STAFF_GRADE_DOWNLOADS": true, 
+"ENABLE_S3_GRADE_DOWNLOADS": true,
+```
+
 ## Sifters provided ##
 
 Several sifters are provided in this repository:
@@ -61,3 +75,9 @@ statistics, including, information about each module in the course,
 how many times it has been accessed, and now many times it has been
 attempted (for problems).
 
+3. `copy_file` -- Copies any arbitrary local file into the data
+download section
+
+4. `xqanalyze` -- Generates a zip file of CSVs where each CSV is a
+problem and each row in the CSV is a students response to that
+question.  Applies only to capa problems.
