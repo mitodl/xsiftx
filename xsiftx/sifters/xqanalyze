@@ -162,6 +162,7 @@ class XProblemAnalyzer(object):
         state = json.loads(entry.state)
         state['dt_created'] = entry.created
         state['module_grade'] = entry.grade
+        state['attempts'] = state.get('attempts','')
         if not 'student_answers' in state:
             return
         self.data[username] = state
@@ -196,6 +197,7 @@ class XProblemAnalyzer(object):
             od = OrderedDict(student=student)
             od['dt'] = str(sdent['dt_created'])
             od['grade'] = sdent['module_grade']
+            od['attempts'] = sdent['attempts']
             allNone = True
             for qname, sqname in qnames.iteritems():
                 response = sdent['student_answers'].get(qname, None)
