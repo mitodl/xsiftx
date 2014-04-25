@@ -1,0 +1,8 @@
+nose
+coverage
+boto
+flask
+oauth
+celery
+mock
+PyYAML

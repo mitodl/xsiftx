@@ -1,0 +1,91 @@
+<html>
+  <head>
+	<title>xSifTx LTI Interface</title>
+	<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.4.2/pure-min.css" />
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+	<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+
+	<link rel="stylesheet" href="{{ url_for('xsiftx_lti.static', filename='css/index.css') }}" />
+	<script type="text/javascript">
+	  // Setup templated URLs
+	  var RUN_URL = '{{ url_for('xsiftx_lti.run') }}';
+      var TASK_STATUS_URL = '{{ url_for('xsiftx_lti.get_task_status') }}';
+      var CLEAR_COMPLETE_TASKS_URL = '{{ url_for('xsiftx_lti.clear_complete_tasks') }}';
+	</script>
+	<script type="text/javascript" src="{{ url_for('xsiftx_lti.static', filename='js/index.js') }}"></script>
+
+
+  </head>
+  <body>
+	<h1>xSifTx</h1>
+	<div class="pure-g">
+	  <div class="pure-u-4-5">
+		<h2>Available Sifters</h2>
+		<div class="error" id="run-error"></div>
+		<table class="pure-table pure-table-striped table">
+		  <thead>
+			<tr>
+			  <th>Sifter</th>
+			  <th>Action</th>
+			</tr>
+		  </thead>
+		  <tbody>
+			{% for sifter in sifters %}
+			<tr>
+			  <td>{{ sifter }}</td>
+			  <td>
+				<label for="{{ sifter }}-extra-args">Arguments:</label>
+				<input type="text"
+					   name="{{ sifter }}-extra-args"
+					   id="{{ sifter }}-extra-args" />
+				<button data-sifter="{{ sifter }}"
+						class="sifter-run pure-button pure-button-primary"
+						type="button" name="run-{{ sifter }}">
+				  Run
+				</button>
+			  </td>
+			</tr>
+			{% endfor %}
+		  </tbody>
+		</table>
+	  </div>
+	  <div class="pure-u-1-5 note-text">
+		<p>
+		  Here are all the sifters that can be run against your
+		  course. These sifters often can take quite some time, and
+		  thus a status of their completion time is also provided.
+		</p>
+		<p>
+		  Once completed, the files they create will be available in
+		  your instructor dashboard.
+		</p>
+	  </div>
+	  <div class="pure-u-5-5 tasks">
+	  	<h2 class="fl">Tasks</h2>
+		<div class="action-buttons">
+		  <button id="update-status" type="button" class="pure-button pure-button-primary">
+			Refresh Status
+		  </button>
+		  <button id="clear-tasks" type="button" class="pure-button pure-button-primary" >
+			Clear Completed
+		  </button>
+		</div>
+
+	  	<table id="tasks-table" class="table pure-table pure-table-bordered">
+	  	  <thead>
+	  		<tr>
+	  		  <th>Sifter</th>
+			  <th>Course</th>
+	  		  <th>Time Initiated</th>
+			  <th>Task ID</th>
+	  		  <th>Status</th>
+	  		</tr>
+	  	  </thead>
+	  	  <tbody>
+	  	  </tbody>
+	  	</table>
+	  </div>
+	</div>
+  </body>
+</html>
