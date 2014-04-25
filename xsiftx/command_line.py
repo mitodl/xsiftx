@@ -33,14 +33,16 @@ def execute():
     """
     Begin command processing
     """
-    sifter_list = get_sifters()
+    sifter_dict = get_sifters()
     parser = argparse.ArgumentParser(
         prog='xsiftx.py',
         formatter_class=argparse.RawTextHelpFormatter,
-        description=('Run a sifter against one or all courses.\n'
-                     'Current available sifters:\n{0}'.format(
-                         '\n'.join(sifter_list))
-                 )
+        description=(
+            'Run a sifter against one or all courses.\n'
+            'Current available sifters:\n{0}'.format(
+                '\n'.join(sifter_dict.keys())
+            )
+        )
     )
     parser.add_argument('sifter',
                         help='script in sifter library to run')
@@ -56,7 +58,7 @@ def execute():
 
     args = parser.parse_args()
 
-    if args.sifter not in sifter_list:
+    if args.sifter not in sifter_dict.keys():
         sys.stderr.write("You have specified a sifter that doesn't exist\n")
         sys.exit(-1)
 
@@ -75,8 +77,7 @@ def execute():
 
     # Everything is all setup, now run the sifter and write the output
     # to the grade download location.
-    sifter_path = '{0}/{1}'.format(os.path.dirname(xsiftx.sifters.__file__),
-                                   args.sifter)
+
     data_store = None
     if settings['use_s3']:
         data_store = xsiftx.store.S3Store(settings)
@@ -92,7 +93,12 @@ def execute():
     for course in courses_to_run:
         with tempfile.NamedTemporaryFile() as tmpfile:
             with tempfile.NamedTemporaryFile() as stderr_tmp:
-                cmd = [sifter_path, args.venv, args.edx_platform, course, ]
+                cmd = [
+                    sifter_dict[args.sifter],
+                    args.venv,
+                    args.edx_platform,
+                    course,
+                    ]
                 cmd.extend(args.extra_args)
                 sift = subprocess.Popen(cmd, stdout=tmpfile, stderr=stderr_tmp,
                                         universal_newlines=True)

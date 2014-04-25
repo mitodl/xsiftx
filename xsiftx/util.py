@@ -18,18 +18,28 @@ def get_sifters():
     Get list of currently installed sifters
     """
 
-    sifter_list = []
-    sifter_path = os.path.dirname(xsiftx.sifters.__file__)
-    executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
-    for filename in os.listdir(sifter_path):
-        fullpath = os.path.join(sifter_path, filename)
-        if os.path.isfile(fullpath):
-            fstat = os.stat(fullpath)
-            mode = fstat.st_mode
-            if mode & executable:
-                sifter_list.append(filename)
+    sifter_dict = {}
+    # List of paths to look for sifters, ordered
+    # in reverse precedence (most important last)
+    # to replace sifter dictionary
+    sifter_paths = [
+        os.path.dirname(xsiftx.sifters.__file__),  # Installed sifters
+        os.path.join(os.path.expanduser('~'), 'sifters'),  # HOME_DIR sifters
+        os.path.join(os.getcwd(), 'sifters'),  # cwd sifters
+    ]
 
-    return sifter_list
+    executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+    for sifter_path in sifter_paths:
+        if os.path.isdir(sifter_path):
+            for filename in os.listdir(sifter_path):
+                fullpath = os.path.join(sifter_path, filename)
+                if os.path.isfile(fullpath):
+                    fstat = os.stat(fullpath)
+                    mode = fstat.st_mode
+                    if mode & executable:
+                        sifter_dict[filename] = fullpath
+
+    return sifter_dict
 
 
 def get_course_list(venv, edx_root):
@@ -57,6 +67,7 @@ def get_course_list(venv, edx_root):
         )
         sys.exit(-1)
     return course_raw.split('\n')[:-1]
+
 
 def get_settings(edx_root):
     """
