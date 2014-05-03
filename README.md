@@ -1,7 +1,7 @@
 xsiftx
 ======
 [![Build Status](https://travis-ci.org/mitocw/xsiftx.svg?branch=master)](https://travis-ci.org/mitocw/xsiftx)
-[![Coverage Status](https://coveralls.io/repos/mitocw/xsiftx/badge.png?branch=cg%2Flti_web)](https://coveralls.io/r/mitocw/xsiftx?branch=master)
+[![Coverage Status](https://coveralls.io/repos/mitocw/xsiftx/badge.png?branch=master)](https://coveralls.io/r/mitocw/xsiftx?branch=master)
 
 xsiftx is a program to run scripts against edx-platform data for a
 course or all courses and then writing that to the grade book s3
