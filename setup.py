@@ -36,7 +36,13 @@ setup(
         'xsiftx = xsiftx.command_line:execute',
     ]},
     zip_safe=False,
-    install_requires=['boto >= 2.13.3',],
+    install_requires=[
+        'boto >= 2.13.3',
+        'flask == 0.10.1',
+        'oauth == 1.0.1',
+        'celery == 3.1.11',
+        'PyYAML',
+        ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',

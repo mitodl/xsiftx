@@ -1,0 +1,30 @@
+.action-buttons {
+	float: right;
+	margin: 30px 5% 5px 0px;
+}
+body { 
+	padding: 1em;
+}
+.note-text {
+	font-size: .8em;
+	color: #666;
+	padding-top: 4em;
+}
+.error {
+	color: #ff4848;
+	font-weight: bold;
+}
+.success {
+	color: #8cff8c;
+}
+
+.table {
+	width: 95%;
+}
+.fl {
+	float: left;
+}
+
+.tasks {
+	padding-top: 2em;
+}
