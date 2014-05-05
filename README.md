@@ -2,7 +2,7 @@
 xsiftx
 ======
 [![Build Status](http://img.shields.io/travis/mitocw/xsiftx.svg?style=flat)](https://travis-ci.org/mitocw/xsiftx)
-[![Coverage Status](http://img.shields.io/coveralls/mitocw/xsiftx.svg?style=flat)](https://coveralls.io/r/mitocw/xsiftx)
+[![Coverage Status](https://coveralls.io/repos/mitocw/xsiftx/badge.png?branch=master)](https://coveralls.io/r/mitocw/xsiftx)
 [![PyPi Downloads](http://img.shields.io/pypi/dm/xsiftx.svg?style=flat)](https://pypi.python.org/pypi/xsiftx)
 [![PyPi Version](http://img.shields.io/pypi/v/xsiftx.svg?style=flat)](https://pypi.python.org/pypi/xsiftx)
 

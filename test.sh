@@ -16,12 +16,13 @@ Options:
  --help print this help message
  -e or --with-edx test runner with edx platform tests
  -q or --with-quality run pylint and pep8 on code
+ -c or --with-coveralls run coveralls at the end (prompting for repo token)
 
 EOF
 }
 
-SHORTOPTS="eq"
-LONGOPTS="help,with-edx,with-quality"
+SHORTOPTS="eqc"
+LONGOPTS="help,with-edx,with-quality,with-coveralls"
 
 if $(getopt -T >/dev/null 2>&1) ; [ $? = 4 ] ; then # New longopts getopt.
  OPTS=$(getopt -o $SHORTOPTS --long $LONGOPTS -n "$progname" -- "$@")
@@ -39,6 +40,7 @@ fi
 eval set -- "$OPTS"
 edx=false
 quality=false
+coveralls=false
 while [ $# -gt 0 ]; do
 	: debug: $1
 	case $1 in
@@ -52,6 +54,10 @@ while [ $# -gt 0 ]; do
 			;;
 		-q|--with-quality)
 			quality=true
+			shift
+			;;
+		-c|--with-coveralls)
+			coveralls=true
 			shift
 			;;
 		--)
@@ -75,4 +81,12 @@ nosetests --with-coverage --cover-html --cover-package=xsiftx
 if $quality; then
 	pylint --rcfile=$DIR/.pylintrc xsiftx
 	pep8 xsiftx
+fi
+
+if $coveralls; then
+	echo "What is the coverall repo token?"
+	read token
+	echo "repo_token: $token" > $DIR/.coveralls.yml
+	coveralls
+	rm $DIR/.coveralls.yml
 fi
