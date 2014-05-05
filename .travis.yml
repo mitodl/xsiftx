@@ -4,6 +4,6 @@ python:
 install:
   - pip install -r requirements.txt --use-mirrors
   - pip install coveralls
-script:  bash test.sh
+script:  bash test.sh -q
 after_success:
   coveralls
