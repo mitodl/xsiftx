@@ -2,13 +2,12 @@
 Tests for xsiftx.util functions
 """
 import os
-import shutil
 import stat
 import unittest
-import tempfile
 
 from mock import patch
 
+from .util import mkdtemp_clean
 from xsiftx.util import (
     get_sifters,
     get_course_list,
@@ -18,10 +17,12 @@ from xsiftx.util import (
     SifterException
 )
 
+
 class TestUtils(unittest.TestCase):
     """
     Test series for util functions in xsiftx.util
     """
+    # pylint: disable=r0904
 
     KNOWN_SIFTERS = [
         'copy_file',
@@ -36,13 +37,11 @@ class TestUtils(unittest.TestCase):
 
     BAD_SIFTER = 'testenv_sifter'
 
-
     def _make_bad_sifter(self):
         """
         Create a sifter that raises an exception
         """
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
+        temp_dir = mkdtemp_clean(self)
         sifter_path = os.path.join(temp_dir, self.BAD_SIFTER)
         with open(sifter_path, 'w+') as temp_sifter:
             temp_sifter.write('#!/bin/bash\nfalse')
@@ -62,7 +61,6 @@ class TestUtils(unittest.TestCase):
         self._make_bad_sifter()
         self.assertTrue(self.BAD_SIFTER in get_sifters())
 
-
     @unittest.skipUnless(os.environ.get('XSIFTX_TEST_EDX', None),
                          'Requires an edx environment and XSIFTX_TEST_EDX '
                          'environment variable set.')
@@ -73,11 +71,10 @@ class TestUtils(unittest.TestCase):
         coords
         """
         with self.assertRaisesRegexp(XsiftxException,
-                                     'No such file or dir.*') as cm:
+                                     'No such file or dir.*'):
             get_course_list('nope', 'nope')
 
         self.assertTrue(len(get_course_list(self.EDX_VENV, self.EDX_ROOT)) > 0)
-
 
     @unittest.skipUnless(os.environ.get('XSIFTX_TEST_EDX', None),
                          'Requires an edx environment and XSIFTX_TEST_EDX '
@@ -94,13 +91,12 @@ class TestUtils(unittest.TestCase):
             'aws_key_id',
         ]
         with self.assertRaisesRegexp(XsiftxException,
-                                     'Cannot find lms.*') as cm:
+                                     'Cannot find lms.*'):
             get_settings('nope')
         settings = get_settings(self.EDX_ROOT)
         self.assertEqual(settings_keys, settings.keys())
         self.assertIsNotNone(settings.get('root_path'))
         self.assertIsNotNone(settings.get('bucket'))
-
 
     @unittest.skipUnless(os.environ.get('XSIFTX_TEST_EDX', None),
                          'Requires an edx environment and XSIFTX_TEST_EDX '
@@ -117,8 +113,7 @@ class TestUtils(unittest.TestCase):
         # Mock out settings so we know where output is going
         bucket = 'reports'
         course = 'stuff'
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
+        temp_dir = mkdtemp_clean(self)
 
         with patch('xsiftx.util.get_settings') as mock_settings:
             mock_settings.return_value = {
@@ -132,15 +127,13 @@ class TestUtils(unittest.TestCase):
             with self.assertRaisesRegexp(SifterException,
                                          'Sifter .+ called with'):
                 self._make_bad_sifter()
-                run_sifter(get_sifters()[self.BAD_SIFTER], 
+                run_sifter(get_sifters()[self.BAD_SIFTER],
                            course, self.EDX_VENV, self.EDX_ROOT, [])
 
             # Test that a good sifter creates the expected file
-            run_sifter(get_sifters()['test_sifters'], 
+            run_sifter(get_sifters()['test_sifters'],
                        course, self.EDX_VENV, self.EDX_ROOT, [])
             self.assertTrue(mock_settings.called)
             self.assertTrue(os.path.exists(
                 os.path.join(temp_dir, course, 'test_sifter.txt')
             ))
-
-

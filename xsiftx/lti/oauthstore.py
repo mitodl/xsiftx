@@ -1,6 +1,7 @@
 """
 Classes to handle oauth portion of LTI
 """
+# pylint: disable=C0103
 import logging
 
 import oauth.oauth as oauth
@@ -42,22 +43,23 @@ class LTIOAuthDataStore(oauth.OAuthDataStore):
             return None
         return oauth.OAuthConsumer(key, secret)
 
-    def lookup_token(self, token_type, token):
+    def lookup_token(self, oauth_consumer, token_type, token):
         """We don't do request_tokens"""
+        # pylint: disable=W0613
         return oauth.OAuthToken(None, None)
 
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
         """Trust all nonces"""
-        return None
+        return None  # pragma: no cover
 
-    def fetch_request_token(self, oauth_consumer):
+    def fetch_request_token(self, oauth_consumer, oauth_callback):
         """We don't do request_tokens"""
-        return None
+        return None  # pragma: no cover
 
-    def fetch_access_token(self, oauth_consumer, oauth_token):
+    def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
         """We don't do request_tokens"""
-        return None
+        return None  # pragma: no cover
 
     def authorize_request_token(self, oauth_token, user):
         """We don't do request_tokens"""
-        return None
+        return None  # pragma: no cover

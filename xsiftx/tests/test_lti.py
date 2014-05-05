@@ -3,30 +3,28 @@ Test LTI web components of the application
 """
 import json
 import os
-import shutil
-import tempfile
 import time
 import unittest
-import yaml
 
-from flask import session
-from mock import patch
-
+import xsiftx.config
 from xsiftx.config import get_config, get_consumer
 from xsiftx.util import get_sifters
 from xsiftx.lti.decorators import LTI_STAFF_ROLES
 import xsiftx.web
+
 
 class TestLTIWebApp(unittest.TestCase):
     """
     Test class for validating LTI interface
     to xsiftx.
     """
+    # pylint: disable=e1103,r0904
 
     def setUp(self):
         """
         grab application test client
         """
+        # pylint: disable=C0103
         self.client = xsiftx.web.app.test_client()
         self.settings = get_config()
 
@@ -36,6 +34,7 @@ class TestLTIWebApp(unittest.TestCase):
         and adds those to the passed dictionary to
         keep out of the way.
         """
+        # pylint: disable=w0102
         consumer = self.settings['consumers'][consumer_id]
         params.update({
             'oauth_consumer_key': consumer['key'],
@@ -69,9 +68,9 @@ class TestLTIWebApp(unittest.TestCase):
             [
                 {'key': 'test_course1',
                  'secret': 'test_secret1',
-                 'allowed_sifters': [ 'test_sifters' ]},
+                 'allowed_sifters': ['test_sifters']},
                 {'key': 'test_course2',
-                 'secret': 'test_secret2',},
+                 'secret': 'test_secret2', },
             ]
         )
 
@@ -81,13 +80,21 @@ class TestLTIWebApp(unittest.TestCase):
 
         # Test config exception
         conf_save = os.environ['XSIFTX_CONFIG']
+        config_path_save = xsiftx.config.CONFIG_PATHS
         del os.environ['XSIFTX_CONFIG']
-        with patch('xsiftx.config.CONFIG_PATHS') as mock_paths:
-            mock_paths = ['/dev/null',]
-            with self.assertRaises(Exception):
-                settings = get_config()
-        os.environ['XSIFTX_CONFIG'] = conf_save
 
+        xsiftx.config.CONFIG_PATHS = ['/dev/null', ]
+        with self.assertRaisesRegexp(Exception, 'No configuration found'):
+            settings = get_config()
+
+        # Test config by path
+        xsiftx.config.CONFIG_PATHS = [conf_save, ]
+        #print(mock_paths)
+        settings = get_config()
+        self.assertEqual(settings['awesome_canary_key'], 'test')
+
+        os.environ['XSIFTX_CONFIG'] = conf_save
+        xsiftx.config.CONFIG_PATHS = config_path_save
 
     def test_lti_authentication(self):
         """
@@ -161,13 +168,13 @@ class TestLTIWebApp(unittest.TestCase):
         and ensure they all get loaded
         """
         # Test limited ACL
-        with xsiftx.web.app.test_client() as c:
+        with xsiftx.web.app.test_client() as client:
             consumer_id = 0
             params = self._oauth_request(
                 {'roles': LTI_STAFF_ROLES[0]},
                 consumer_id
             )
-            response = c.post('/', data=params)
+            response = client.post('/', data=params)
             self.assertEqual(response.status_code, 200)
             self.assertTrue(
                 'Available Sifters' in
@@ -181,13 +188,13 @@ class TestLTIWebApp(unittest.TestCase):
             )
 
         # Test no ACL
-        with xsiftx.web.app.test_client() as c:
+        with xsiftx.web.app.test_client() as client:
             consumer_id = 1
             params = self._oauth_request(
                 {'roles': LTI_STAFF_ROLES[0]},
                 consumer_id
             )
-            response = c.post('/', data=params)
+            response = client.post('/', data=params)
             self.assertEqual(response.status_code, 200)
             self.assertTrue(
                 'Available Sifters' in
@@ -198,7 +205,7 @@ class TestLTIWebApp(unittest.TestCase):
                 all(sifter in response.data
                     for sifter in get_sifters())
             )
-        
+
     def test_api_error(self):
         """
         Excercise the API error handler to make sure it returns
@@ -210,7 +217,7 @@ class TestLTIWebApp(unittest.TestCase):
         # Test that LTI error on API url returns JSON instead of html
         response = self.client.post(test_url)
         self.assertEqual(response.status_code, 401)
-        repy_json = json.loads(response.data)
+        json.loads(response.data)
 
         # Test no sifter
         response = self.client.post(
@@ -222,7 +229,7 @@ class TestLTIWebApp(unittest.TestCase):
         reply_json = json.loads(response.data)
         self.assertTrue(
             u'This api call requires the parameter "sifter".' ==
-            reply_json['message'] 
+            reply_json['message']
         )
 
         # Test invalid sifter
@@ -235,10 +242,9 @@ class TestLTIWebApp(unittest.TestCase):
         reply_json = json.loads(response.data)
         self.assertTrue(
             u'You have specified an invalid sifter.' ==
-            reply_json['message'] 
+            reply_json['message']
         )
         self.assertIsNotNone(reply_json.get('available_sifters', None))
-        
 
     def test_run_sifter(self):
         """
@@ -249,15 +255,17 @@ class TestLTIWebApp(unittest.TestCase):
         # back the job id and such
         self.assertTrue(reply_json['tasks'][0]['status'] == 'PENDING')
 
-
     def test_task_status_and_delete(self):
         """
         Test task status API point and validate response json
         """
         update_url = '/api/v0.1/update_task_status'
+        # Create several runs
         num_runs = 10
-        for run in range(num_runs):
+        for _ in range(num_runs):
             reply_json = self._run_sifter('xqanalyze')
+
+        # Check we have the right number
         response = self.client.put(
             update_url,
             data=self._oauth_request()
@@ -265,12 +273,20 @@ class TestLTIWebApp(unittest.TestCase):
         reply_json = json.loads(response.data)
         self.assertTrue(len(reply_json['tasks']), num_runs)
 
+        # Now delete them
         delete_url = '/api/v0.1/clear_complete_tasks'
-        with patch('xsiftx.lti.JOB_CLEAR_STATUSES') as mock_status:
-            mock_status = ['PENDING',]
-            response = self.client.delete(
-                delete_url,
-                data=self._oauth_request()
-            )
-            reply_json = json.loads(response.data)
-            self.assertTrue(len(reply_json['tasks']), 0)
+        response = self.client.delete(
+            delete_url,
+            data=self._oauth_request()
+        )
+        reply_json = json.loads(response.data)
+        self.assertTrue(len(reply_json['tasks']), 0)
+
+        # And double check they are gone
+        # Check we have the right number
+        response = self.client.put(
+            update_url,
+            data=self._oauth_request()
+        )
+        reply_json = json.loads(response.data)
+        self.assertTrue(len(reply_json['tasks']), 0)

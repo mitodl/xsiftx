@@ -1,8 +1,7 @@
-edx_venv_path: "/edx/app/edxapp/venvs/edxapp"
-edx_platform_path: "/edx/app/edxapp/edx-platform"
 flask_secret_key: "testing_secret"
 CELERY_ALWAYS_EAGER: true
 CELERY_BROKER_URL: "memory://"
+awesome_canary_key: 'test'
 consumers:
   - key: test_course1
     secret: test_secret1

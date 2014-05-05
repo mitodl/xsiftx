@@ -36,6 +36,7 @@ CONFIG_PATHS = [
 VENV = ('edx_venv_path', '/edx/app/edxapp/venvs/edxapp')
 EDX_PLATFORM = ('edx_platform_path', '/edx/app/edxapp/edx-platform')
 
+
 def get_consumer(key):
     """
     Returns the consumer object based on key
@@ -57,10 +58,12 @@ def get_config():
     config_file = None
 
     var_conf = os.environ.get('XSIFTX_CONFIG', None)
+    print CONFIG_PATHS
     if var_conf:
         config_file = var_conf
     else:
         for conf_path in CONFIG_PATHS:
+            print(conf_path)
             if os.path.isfile(conf_path):
                 config_file = conf_path
                 break
@@ -81,4 +84,4 @@ def get_config():
 
     return conf
 
-settings = get_config()
+settings = get_config()  # pylint: disable=C0103

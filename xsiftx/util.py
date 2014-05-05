@@ -43,7 +43,7 @@ def get_sifters():
         os.path.dirname(xsiftx.sifters.__file__),  # Installed sifters
         os.path.join(os.path.expanduser('~'), 'sifters'),  # HOME_DIR sifters
         os.path.join(os.getcwd(), 'sifters'),  # cwd sifters
-        os.environ.get('SIFTER_DIR', ''), # Environment set sifters
+        os.environ.get('SIFTER_DIR', ''),  # Environment set sifters
     ]
 
     executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
@@ -107,7 +107,7 @@ def get_settings(edx_root):
     if not os.path.isfile(env_path):
         raise XsiftxException(
             'Cannot find lms environment file: {0}. '
-            'Is the path correct?'.format(envpath)
+            'Is the path correct?'.format(env_path)
         )
     with open(env_path) as env_file:
         env_tokens = json.load(env_file)
@@ -152,7 +152,7 @@ def run_sifter(sifter, course, venv, edx_platform, extra_args):
                 venv,
                 edx_platform,
                 course,
-                ]
+            ]
             cmd.extend(extra_args)
             sift = subprocess.Popen(cmd, stdout=tmpfile, stderr=stderr_tmp,
                                     universal_newlines=True)

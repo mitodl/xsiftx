@@ -2,6 +2,7 @@
 Decorators to handle LTI session management,
 authentication, etc.
 """
+# pylint: disable=C0103
 from functools import wraps
 import logging
 
@@ -34,7 +35,7 @@ LTI_PROPERTY_LIST = [
     'roles',
 ]
 
-LTI_STAFF_ROLES = ['Instructor', 'Administrator',]
+LTI_STAFF_ROLES = ['Instructor', 'Administrator', ]
 
 LTI_SESSION_KEY = 'lti_authenticated'
 
@@ -49,6 +50,7 @@ def lti_authentication(func):
         """
         Actual wrapper to handle LTI/OAuth
         """
+        # pylint: disable=W0212
         # If we are already authenticated, just
         # return instead
         if session.get(LTI_SESSION_KEY, False):
@@ -84,8 +86,8 @@ def lti_authentication(func):
             consumer = oauth_server._get_consumer(oauth_request)
             oauth_server._check_signature(oauth_request, consumer, None)
         except oauth.OAuthError as err:
-            # Rethrow our own for nice error handling (don't print error message
-            # as it will contain the key
+            # Rethrow our own for nice error handling (don't print
+            # error message as it will contain the key
             log.info(err.message)
             raise LTIException("OAuth error: Please check your key and secret")
 
@@ -102,6 +104,7 @@ def lti_authentication(func):
 
     return decorator
 
+
 def lti_staff_required(func):
     """
     Decorator to make sure that person is a
@@ -116,7 +119,7 @@ def lti_staff_required(func):
         roles and raise if it isn't in that set.
         """
         log.debug(session)
-        role =  session.get('roles', None)
+        role = session.get('roles', None)
         if not role:
             raise LTIRoleException(
                 'User does not have a role. One is required'

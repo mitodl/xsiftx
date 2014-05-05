@@ -3,6 +3,7 @@ This is a simple LTI interface application/blueprint
 for flask that allows user's to run a sifter from
 inside their courseware (if authorized)
 """
+# pylint: disable=C0103
 import os
 import shlex
 import time
@@ -36,7 +37,7 @@ from xsiftx.util import (
 
 API_VERSION = 'v0.1'
 
-JOB_CLEAR_STATUSES = ['SUCCESS', 'FAILURE', 'REVOKED', 'SIFTER_FAILURE',]
+JOB_CLEAR_STATUSES = ['SUCCESS', 'FAILURE', 'REVOKED', 'SIFTER_FAILURE', ]
 
 
 # Define our app as a blueprint
@@ -45,19 +46,21 @@ xsiftx_lti = Blueprint(
     __name__,
     template_folder='templates/lti',
     static_folder='static/lti',
+)
+
+
+celery = Celery(
+    'xsiftx_lti',
+    broker=settings.get(
+        'CELERY_BROKER_URL',
+        'amqp://guest:guest@127.0.0.1:5672/'
+    ),
+    backend=settings.get(
+        'CELERY_RESULT_BACKEND', 'amqp'
     )
-
-
-celery = Celery('xsiftx_lti',
-                broker=settings.get(
-                    'CELERY_BROKER_URL',
-                    'amqp://guest:guest@127.0.0.1:5672/'
-                ),
-                backend=settings.get(
-                    'CELERY_RESULT_BACKEND', 'amqp'
-                )
-            )
+)
 celery.conf.update(settings)
+
 
 @xsiftx_lti.route('/', methods=['GET', 'POST'])
 @lti_authentication
@@ -93,7 +96,7 @@ def run():
         raise InvalidAPIUsage(
             'You have specified an invalid sifter.',
             400,
-            {'available_sifters': sifters }
+            {'available_sifters': sifters}
         )
 
     course = session['context_id']
@@ -101,8 +104,6 @@ def run():
     task = web_run_sifter.apply_async((
         sifter,
         course,
-        settings[VENV[0]],
-        settings[EDX_PLATFORM[0]],
         extra_args
     ))
     managed_tasks = list(session.get('managed_tasks', []))
@@ -118,7 +119,10 @@ def run():
     return get_task_status()
 
 
-@xsiftx_lti.route('/api/{0}/update_task_status'.format(API_VERSION), methods=['PUT'])
+@xsiftx_lti.route(
+    '/api/{0}/update_task_status'.format(API_VERSION),
+    methods=['PUT']
+)
 @lti_authentication
 def get_task_status():
     """
@@ -126,7 +130,7 @@ def get_task_status():
     """
     managed_tasks = session.get('managed_tasks', [])
     for task in managed_tasks:
-        result = celery.AsyncResult(task['task_id'])
+        result = celery.AsyncResult(task['task_id'])  # pylint: disable=e1121
         task['status'] = result.status
         if result.state == 'SUCCESS':
             task['results'] = result.result
@@ -136,7 +140,9 @@ def get_task_status():
     return jsonify({'tasks': managed_tasks})
 
 
-@xsiftx_lti.route('/api/{0}/clear_complete_tasks'.format(API_VERSION), methods=['DELETE'])
+@xsiftx_lti.route(
+    '/api/{0}/clear_complete_tasks'.format(API_VERSION),
+    methods=['DELETE'])
 @lti_authentication
 def clear_complete_tasks():
     """
@@ -153,7 +159,7 @@ def clear_complete_tasks():
 
 
 @celery.task(name='xsiftx.run_sifter')
-def web_run_sifter(sifter, course, venv, edx_platform, extra_args):
+def web_run_sifter(sifter, course, extra_args):
     """
     Run the given sifter and handle errors from the internal call
     """
@@ -179,6 +185,7 @@ def web_run_sifter(sifter, course, venv, edx_platform, extra_args):
         'sifter': os.path.basename(sifter),
         'error': error,
     }
+
 
 @xsiftx_lti.errorhandler(InvalidAPIUsage)
 def handle_invalid_api_usage(error):

@@ -4,12 +4,12 @@ provider application.
 """
 from flask import Flask
 
-from lti import xsiftx_lti, celery
-
 from xsiftx.config import settings
+from xsiftx.lti import xsiftx_lti
 
-app = Flask('xsiftx')
-app.config.update(**settings)
+
+app = Flask('xsiftx')  # pylint: disable=C0103
+app.config.update(**settings)  # pylint: disable=W0142
 
 
 # Setup session from config
@@ -19,6 +19,5 @@ app.secret_key = settings.get('flask_secret_key', None)
 app.register_blueprint(xsiftx_lti)
 
 if __name__ == "__main__":
-    app
     app.debug = True
     app.run(host='0.0.0.0')
