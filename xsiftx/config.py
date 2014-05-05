@@ -58,12 +58,10 @@ def get_config():
     config_file = None
 
     var_conf = os.environ.get('XSIFTX_CONFIG', None)
-    print CONFIG_PATHS
     if var_conf:
         config_file = var_conf
     else:
         for conf_path in CONFIG_PATHS:
-            print(conf_path)
             if os.path.isfile(conf_path):
                 config_file = conf_path
                 break
