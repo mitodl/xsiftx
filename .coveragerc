@@ -1,0 +1,16 @@
+[run]
+
+branch = True
+
+[paths]
+
+source = xsiftx
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == "__main__":
+    app.debug = True
+    app.run(host='0.0.0.0')
+    return oauth.OAuthToken(None, None)
+    
