@@ -124,7 +124,7 @@ def lti_staff_required(func):
             raise LTIRoleException(
                 'User does not have a role. One is required'
             )
-        if not role in LTI_STAFF_ROLES:
+        if role not in LTI_STAFF_ROLES:
             raise LTIRoleException(
                 'You are not in a staff level role. Access is restricted '
                 'to course staff.'

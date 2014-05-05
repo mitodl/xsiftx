@@ -89,7 +89,6 @@ class TestLTIWebApp(unittest.TestCase):
 
         # Test config by path
         xsiftx.config.CONFIG_PATHS = [conf_save, ]
-        #print(mock_paths)
         settings = get_config()
         self.assertEqual(settings['awesome_canary_key'], 'test')
 
