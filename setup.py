@@ -38,9 +38,9 @@ setup(
     zip_safe=False,
     install_requires=[
         'boto >= 2.13.3',
-        'flask == 0.10.1',
-        'oauth == 1.0.1',
-        'celery == 3.1.11',
+        'flask',
+        'oauth',
+#        'celery',
         'PyYAML',
         ],
     classifiers=[
