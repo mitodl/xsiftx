@@ -40,7 +40,7 @@ setup(
         'boto >= 2.13.3',
         'flask',
         'oauth',
-#        'celery',
+        'celery',
         'PyYAML',
         ],
     classifiers=[
