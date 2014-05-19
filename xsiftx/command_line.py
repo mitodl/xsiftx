@@ -20,6 +20,7 @@ extra arguments that were passed to sifter
 import argparse
 import sys
 
+from xsiftx.config import VENV, EDX_PLATFORM
 from xsiftx.util import (
     get_sifters,
     get_course_list,
@@ -47,9 +48,10 @@ def execute():
                         help='script in sifter library to run')
     parser.add_argument('-c', '--course', type=str,
                         help='Course ID e.g. org/number/term')
-    parser.add_argument('-v', '--venv', type=str, required=True,
+    parser.add_argument('-v', '--venv', type=str, default=VENV[1],
                         help='Virtualenv root path for edx-platform')
-    parser.add_argument('-e', '--edx-platform', type=str, required=True,
+    parser.add_argument('-e', '--edx-platform', type=str,
+                        default=EDX_PLATFORM[1],
                         help='Root path to edx-platform')
 
     # Grab any extra arguments passed in
