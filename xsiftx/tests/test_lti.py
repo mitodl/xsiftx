@@ -123,7 +123,6 @@ class TestLTIWebApp(unittest.TestCase):
         params['oauth_signature'] = 'silly&'
         response = self.client.post('/', data=params)
         self.assertEqual(response.status_code, 401)
-        print(response.data)
         self.assertTrue(
             'OAuth error: Please check your key' in
             response.data
