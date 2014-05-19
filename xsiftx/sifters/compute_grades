@@ -1,0 +1,10 @@
+#!/bin/bash
+# Use internal django command to compute grades
+# and store them into sql
+cd $2
+$1/bin/python manage.py lms --settings=aws compute_grades $3 > /dev/null
+if [ $? -ne 0 ]; then
+	echo "The django command failed" >&2
+	exit -2
+fi
+# Silent sifter since output goes to edx sql store, so echo nothing
