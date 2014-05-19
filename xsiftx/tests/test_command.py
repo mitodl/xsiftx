@@ -26,28 +26,34 @@ class TestCommandLine(unittest.TestCase):
         Test all the argument variations available
         """
         with nostderr():
+
+            # Test no arguments
             with self.assertRaises(SystemExit) as exception_context:
                 execute()
             exit_exception = exception_context.exception
             self.assertEqual(exit_exception.code, 2)
 
+            # Test no venv or edx-platform (use defaults), expecting
+            # invalid sifter
             with self.assertRaises(SystemExit) as exception_context:
                 sys.argv = ['xsiftx', 'sifter', ]
                 execute()
             exit_exception = exception_context.exception
-            self.assertEqual(exit_exception.code, 2)
+            self.assertEqual(exit_exception.code, -1)
 
+            # Invalid venv, good edx-platform - expect invalid sifter
             with self.assertRaises(SystemExit) as exception_context:
                 sys.argv = ['xsiftx', '-v', 'sfutt', 'sifter', ]
                 execute()
             exit_exception = exception_context.exception
-            self.assertEqual(exit_exception.code, 2)
+            self.assertEqual(exit_exception.code, -1)
 
+            # Invalid edx-platform, valid venv - expect invalid
             with self.assertRaises(SystemExit) as exception_context:
                 sys.argv = ['xsiftx', '-e', 'sfutt', 'sifter', ]
                 execute()
             exit_exception = exception_context.exception
-            self.assertEqual(exit_exception.code, 2)
+            self.assertEqual(exit_exception.code, -1)
 
     def test_bad_sifter(self):
         """
