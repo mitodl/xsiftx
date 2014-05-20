@@ -2,6 +2,7 @@
 Test LTI web components of the application
 """
 import json
+import logging
 import os
 import time
 import unittest
@@ -130,6 +131,18 @@ class TestLTIWebApp(unittest.TestCase):
 
         # Valid OAuth, but missing authorization
         response = self.client.post('/', data=self._oauth_request())
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            'User does not have a role' in
+            response.data
+        )
+
+        # Test https header
+        with xsiftx.web.app.test_client() as client:
+            response = client.post(
+                '/', data=self._oauth_request(),
+                headers={'x-forwarded-proto': 'https'}
+            )
         self.assertEqual(response.status_code, 401)
         self.assertTrue(
             'User does not have a role' in
@@ -288,3 +301,28 @@ class TestLTIWebApp(unittest.TestCase):
         )
         reply_json = json.loads(response.data)
         self.assertTrue(len(reply_json['tasks']), 0)
+
+    def test_logging_level(self):
+        """
+        Tests to make sure logging config happens and handles
+        bad output.
+        """
+        # Check it is the right setting from test config
+        self.assertEqual(self.settings['log_level'], 'debug')
+        level = xsiftx.web.set_log_level()
+        # Check that setting is not applied
+        self.assertEqual(logging.DEBUG, level)
+
+        # Set to invalid level and assert the exception
+        xsiftx.config.settings['log_level'] = 'awesome'
+        with self.assertRaisesRegexp(ValueError, 'Invalid log level.*'):
+            level = xsiftx.web.set_log_level()
+            self.assertIsNone(level)
+
+        # Make sure it is ok not to have a level set
+        del xsiftx.config.settings['log_level']
+        level = xsiftx.web.set_log_level()
+        self.assertIsNone(level)
+
+        # Restore setting
+        xsiftx.config.settings['log_level'] = 'debug'

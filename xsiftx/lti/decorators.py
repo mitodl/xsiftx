@@ -71,9 +71,14 @@ def lti_authentication(func):
         oauth_server.add_signature_method(
             oauth.OAuthSignatureMethod_HMAC_SHA1())
 
+        # Check header for SSL before selecting the url
+        url = request.url
+        if request.headers.get('X-Forwarded-Proto', 'http') == 'https':
+            url = request.url.replace('http', 'https', 1)
+
         oauth_request = oauth.OAuthRequest.from_request(
-            "POST",
-            request.url,
+            request.method,
+            url,
             headers=dict(request.headers),
             parameters=params
         )
