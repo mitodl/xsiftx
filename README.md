@@ -127,20 +127,24 @@ also want to specify the number of workers allowed to run.
 
 Several sifters are provided in this repository:
 
-1. `dump_grades` -- dumps grades of all students to a CSV file.  The
-grades can both be the aggregated grades (as defined by the edX
-graders configuration) or raw grades (un-aggregated grades for
-individual problems).  Being able to dump raw grades can be very
-helpful to instructors who are debugging edX graders configurations.
+- `dump_grades` -- dumps grades of all students to a CSV file.  The
+  grades can both be the aggregated grades (as defined by the edX
+  graders configuration) or raw grades (un-aggregated grades for
+  individual problems).  Being able to dump raw grades can be very
+  helpful to instructors who are debugging edX graders configurations.
 
-2. `content_statistics` -- dumps a CSV file with course content usage
-statistics, including, information about each module in the course,
-how many times it has been accessed, and now many times it has been
-attempted (for problems).
+- `content_statistics` -- dumps a CSV file with course content usage
+  statistics, including, information about each module in the course,
+  how many times it has been accessed, and now many times it has been
+  attempted (for problems).
 
-3. `copy_file` -- Copies any arbitrary local file into the data
-download section
+- `copy_file` -- Copies any arbitrary local file into the data
+  download section
 
-4. `xqanalyze` -- Generates a zip file of CSVs where each CSV is a
-problem and each row in the CSV is a students response to that
-question.  Applies only to capa problems.
+- `xqanalyze` -- Generates a zip file of CSVs where each CSV is a
+  problem and each row in the CSV is a students response to that
+  question.  Applies only to capa problems.
+
+- `compute_grades` -- Doesn't generate a report but does calculate
+  grades for a course and stores them in the SQL data store for use by
+  legacy dashboard actions.
