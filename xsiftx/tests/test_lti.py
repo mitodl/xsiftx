@@ -7,6 +7,8 @@ import os
 import time
 import unittest
 
+from mock import patch
+
 import xsiftx.config
 from xsiftx.config import get_config, get_consumer
 from xsiftx.util import get_sifters
@@ -41,7 +43,7 @@ class TestLTIWebApp(unittest.TestCase):
             'oauth_consumer_key': consumer['key'],
             'oauth_signature_method': 'PLAINTEXT',
             'oauth_version': '1.0',
-            'oauth_signature': '{0}&'.format(consumer['secret']),
+            'oauth_signature': '{0}&'.format(consumer.get('secret', '')),
             'oauth_timestamp': str(int(time.time())),
             'oauth_nonce': '123456789',
             'context_id': 'MITx/A.we/some'
@@ -72,6 +74,7 @@ class TestLTIWebApp(unittest.TestCase):
                  'allowed_sifters': ['test_sifters']},
                 {'key': 'test_course2',
                  'secret': 'test_secret2', },
+                {'key': 'testo', },
             ]
         )
 
@@ -95,6 +98,45 @@ class TestLTIWebApp(unittest.TestCase):
 
         os.environ['XSIFTX_CONFIG'] = conf_save
         xsiftx.config.CONFIG_PATHS = config_path_save
+
+    @patch('xsiftx.lti.oauthstore.log')
+    def test_no_consumers(self, mock_logging):
+        """
+        Make sure we handle a lack of conumers altogether well
+        """
+        saved_consumers = xsiftx.config.settings['consumers']
+        del xsiftx.config.settings['consumers']
+
+        response = self.client.post('/', data=self._oauth_request())
+        self.assertEquals(response.status_code, 401)
+        self.assertTrue(mock_logging.critical.called_with(
+            "No consumers defined in settings."
+            "Have you created a configuration file?"
+        ))
+
+        # Restore
+        xsiftx.config.settings['consumers'] = saved_consumers
+
+    @patch('xsiftx.lti.oauthstore.log')
+    def test_consumer_without_secret(self, mock_logging):
+        """
+        Test a consumer that is missing a secret.
+        """
+        keyless_consumer = 2
+        response = self.client.post(
+            '/',
+            data=self._oauth_request(
+                {'oauth_secret': 'test&'},
+                keyless_consumer
+            )
+        )
+        self.assertEquals(response.status_code, 401)
+        self.assertTrue(mock_logging.critical.called_with(
+            'Consumer {0}, is missing secret'
+            'in settings file, and needs correction.'.format(
+                self.settings['consumers'][keyless_consumer]['key']
+            )
+        ))
 
     def test_lti_authentication(self):
         """
@@ -160,6 +202,22 @@ class TestLTIWebApp(unittest.TestCase):
             'You are not in a staff level role. Access is restricted ' in
             response.data
         )
+
+    def test_reauthorization(self):
+        """
+        Make sure that if my role changes, my access changes as well.
+        """
+        params = self._oauth_request({'roles': 'Student'})
+        response = self.client.post('/', data=params)
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            'You are not in a staff level role. Access is restricted ' in
+            response.data
+        )
+
+        params = self._oauth_request({'roles': 'Instructor'})
+        response = self.client.post('/', data=params)
+        self.assertEqual(response.status_code, 200)
 
     def test_index(self):
         """

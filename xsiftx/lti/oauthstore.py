@@ -40,13 +40,15 @@ class LTIOAuthDataStore(oauth.OAuthDataStore):
 
         secret = consumer.get('secret', None)
         if not secret:
+            log.critical(('Consumer %s, is missing secret'
+                          'in settings file, and needs correction.'), key)
             return None
         return oauth.OAuthConsumer(key, secret)
 
     def lookup_token(self, oauth_consumer, token_type, token):
         """We don't do request_tokens"""
         # pylint: disable=W0613
-        return oauth.OAuthToken(None, None)
+        return oauth.OAuthToken(None, None)  # pragma: no cover
 
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
         """Trust all nonces"""

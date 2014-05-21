@@ -10,3 +10,4 @@ consumers:
       - test_sifters
   - key: test_course2
     secret: test_secret2
+  - key: testo

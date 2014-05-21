@@ -16,13 +16,14 @@ Options:
  --help print this help message
  -e or --with-edx test runner with edx platform tests
  -q or --with-quality run pylint and pep8 on code
+ -d or --diff-cover report of coverage in diff from origin/master
  -c or --with-coveralls run coveralls at the end (prompting for repo token)
 
 EOF
 }
 
-SHORTOPTS="eqc"
-LONGOPTS="help,with-edx,with-quality,with-coveralls"
+SHORTOPTS="eqcd"
+LONGOPTS="help,with-edx,with-quality,with-coveralls,diff-cover"
 
 if $(getopt -T >/dev/null 2>&1) ; [ $? = 4 ] ; then # New longopts getopt.
  OPTS=$(getopt -o $SHORTOPTS --long $LONGOPTS -n "$progname" -- "$@")
@@ -41,6 +42,7 @@ eval set -- "$OPTS"
 edx=false
 quality=false
 coveralls=false
+diffcover=false
 while [ $# -gt 0 ]; do
 	: debug: $1
 	case $1 in
@@ -58,6 +60,10 @@ while [ $# -gt 0 ]; do
 			;;
 		-c|--with-coveralls)
 			coveralls=true
+			shift
+			;;
+		-d|--diff-cover)
+			diffcover=true
 			shift
 			;;
 		--)
@@ -81,6 +87,12 @@ nosetests --with-coverage --cover-html --cover-package=xsiftx
 if $quality; then
 	pylint --rcfile=$DIR/.pylintrc xsiftx
 	pep8 xsiftx
+fi
+
+if $diffcover; then
+	coverage xml -i
+	diff-cover coverage.xml
+	rm coverage.xml
 fi
 
 if $coveralls; then

@@ -8,3 +8,4 @@ mock
 PyYAML
 pep8
 pylint
+diff-cover

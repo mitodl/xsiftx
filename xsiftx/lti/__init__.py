@@ -17,7 +17,6 @@ from flask import (
     jsonify,
     make_response,
 )
-from jinja2 import TemplateNotFound
 
 from .decorators import lti_authentication, lti_staff_required
 from .util import (
@@ -28,7 +27,6 @@ from .util import (
 )
 from xsiftx.config import settings, get_consumer, VENV, EDX_PLATFORM
 from xsiftx.util import (
-    get_sifters,
     XsiftxException,
     SifterException,
     run_sifter

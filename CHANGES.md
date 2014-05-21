@@ -1,5 +1,16 @@
 # Change Log #
 
+## 0.5.0
+ - Added log level configuration support
+ - Added support for running behind SSL termination point
+ - Smarter credential management (clears session on auth for validation)
+ - Add diff-cover to testing
+
+## 0.4.0
+
+ - Added compute_grades sifter
+ - Added defaults to command line to shorten it in most cases
+
 ## 0.3.1
 
 - Added LTI Web interface
