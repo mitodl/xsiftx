@@ -51,18 +51,24 @@ def lti_authentication(func):
         Actual wrapper to handle LTI/OAuth
         """
         # pylint: disable=W0212
-        # If we are already authenticated, just
-        # return instead
-        if session.get(LTI_SESSION_KEY, False):
-            return func(*args, **kwargs)
 
         # Get lti GET or POST params as dict
         if request.method == 'POST':
             params = request.form.to_dict()
         else:
             params = request.args.to_dict()
-
         log.debug(params)
+
+        # If we are already authenticated and not requesting oauth, return
+        if (session.get(LTI_SESSION_KEY, False)
+                and not params.get('oauth_consumer_key', None)):
+            return func(*args, **kwargs)
+
+        # Clear session to ensure authorization is happening fresh for
+        # each lti instance.
+        for prop in LTI_PROPERTY_LIST:
+            if session.get(prop, None):
+                del session[prop]
 
         # Try and authentication if session is being initiated
         oauth_server = oauth.OAuthServer(LTIOAuthDataStore())

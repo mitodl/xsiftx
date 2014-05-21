@@ -115,7 +115,7 @@ with xsiftx.web:app. For uwsgi, that would be something like
 `uwsgi --http :5000 -w xsiftx.web:app`, for gunicorn it would be:
 `gunicorn xsiftx.web:app -b 0.0.0.0:5000`. You will also need to
 start your celery worker to process jobs with something like:
-`celery --app=xsiftx.web worker -l info` and you should be good to
+`celery --app=xsiftx.lti worker -l info` and you should be good to
 go.  For production, you will want to put these into some type of
 startup file, and the application still needs to run on a system with
 edx-platform installed and the user running the workers will need
