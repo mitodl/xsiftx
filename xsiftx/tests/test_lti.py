@@ -10,7 +10,7 @@ import unittest
 from mock import patch
 
 import xsiftx.config
-from xsiftx.config import get_config, get_consumer
+from xsiftx.config import get_config, get_consumer, XsiftxNoConfigException
 from xsiftx.util import get_sifters
 from xsiftx.lti.decorators import LTI_STAFF_ROLES
 import xsiftx.web
@@ -88,7 +88,8 @@ class TestLTIWebApp(unittest.TestCase):
         del os.environ['XSIFTX_CONFIG']
 
         xsiftx.config.CONFIG_PATHS = ['/dev/null', ]
-        with self.assertRaisesRegexp(Exception, 'No configuration found'):
+        with self.assertRaisesRegexp(XsiftxNoConfigException,
+                                     'No configuration found'):
             settings = get_config()
 
         # Test config by path

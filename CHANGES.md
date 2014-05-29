@@ -1,5 +1,9 @@
 # Change Log #
 
+## 0.5.1
+
+- Fixed bug that caused the command line to need a configuration file
+
 ## 0.5.0
  - Added log level configuration support
  - Added support for running behind SSL termination point

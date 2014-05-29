@@ -22,7 +22,7 @@ def enter_lms(venv_path, edx_path):
     setup the environment as though the script was included
     in the lms project.
     """
-
+    # pylint: disable=F0401
     use_edx_venv(venv_path)
     sys.path.append(edx_path)
     os.environ['DJANGO_SETTINGS_MODULE'] = 'lms.envs.aws'
