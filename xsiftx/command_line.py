@@ -20,7 +20,7 @@ extra arguments that were passed to sifter
 import argparse
 import sys
 
-from xsiftx.config import VENV, EDX_PLATFORM
+from xsiftx.util import VENV, EDX_PLATFORM
 from xsiftx.util import (
     get_sifters,
     get_course_list,

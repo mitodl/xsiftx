@@ -12,6 +12,8 @@ import xsiftx.store
 
 ENV_JSON_FILENAME = 'lms.env.json'
 AUTH_JSON_FILENAME = 'lms.auth.json'
+VENV = ('edx_venv_path', '/edx/app/edxapp/venvs/edxapp')
+EDX_PLATFORM = ('edx_platform_path', '/edx/app/edxapp/edx-platform')
 
 
 class XsiftxException(Exception):

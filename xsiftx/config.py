@@ -27,14 +27,20 @@ store session information as flask_secret_key: <long crypto secret>
 import os
 import yaml
 
+from xsiftx.util import VENV, EDX_PLATFORM
+
 CONFIG_PATHS = [
     os.path.join(os.getcwd(), 'xsiftx.yml'),
     os.path.join(os.path.expanduser('~'), '.xsiftx.yml'),
     '/etc/xsiftx.yml',
 ]
 
-VENV = ('edx_venv_path', '/edx/app/edxapp/venvs/edxapp')
-EDX_PLATFORM = ('edx_platform_path', '/edx/app/edxapp/edx-platform')
+
+class XsiftxNoConfigException(Exception):
+    """
+    Customized exception for when the configuration doesn't exist
+    """
+    pass
 
 
 def get_consumer(key):
@@ -71,7 +77,7 @@ def get_config():
             conf = yaml.load(conf_yaml)
 
     if not conf:
-        raise Exception('No configuration found')
+        raise XsiftxNoConfigException('No configuration found')
 
     # Add some defaults for common settings if they aren't there
     if not conf.get(VENV[0], None):

@@ -2,6 +2,8 @@
 
 EXPECTED_ARGS=1
 E_BADARGS=65
+MAX_PYLINT_VIOLATIONS=0
+MAX_PEP8_VIOLATIONS=0
 
 progname=$(basename $0) 
 usage()
@@ -80,13 +82,19 @@ done
 if $edx; then
 	export XSIFTX_TEST_EDX="yep"
 fi
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export XSIFTX_CONFIG="$DIR/xsiftx/tests/config/xsiftx_config.yml"
+
 nosetests --with-coverage --cover-html --cover-package=xsiftx
 
 if $quality; then
+	# Show nice reports
 	pylint --rcfile=$DIR/.pylintrc xsiftx
 	pep8 xsiftx
+	# Run again for automated violation testing
+	pylint_violations=$(pylint --rcfile=$DIR/.pylintrc xsiftx -r n | grep -v '\*\*\*\*\*\*\*\*\*\*' | wc -l)
+	pep8_violations=$(pep8 xsiftx | wc -l)
 fi
 
 if $diffcover; then
@@ -101,4 +109,12 @@ if $coveralls; then
 	echo "repo_token: $token" > $DIR/.coveralls.yml
 	coveralls
 	rm $DIR/.coveralls.yml
+fi
+
+if [[ pylint_violations!="" && pylint_violations -gt MAX_PYLINT_VIOLATIONS ]]; then
+	exit 1
+fi
+
+if [[ pep8_violations!="" && pep8_violations -gt MAX_PEP8_VIOLATIONS ]]; then
+	exit 1
 fi
