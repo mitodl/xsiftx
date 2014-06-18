@@ -1,5 +1,9 @@
 # Change Log #
 
+## 0.6.0
+
+- Added new sifter that will export student grade to a remote gradebook
+
 ## 0.5.1
 
 - Fixed bug that caused the command line to need a configuration file
