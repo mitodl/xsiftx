@@ -1,0 +1,192 @@
+#!/usr/bin/python
+"""Remote Grades Sifter
+
+This will export the specified assignment (or all assignments if
+unspecified) to the course specified remote gradebook.
+"""
+import StringIO
+import sys
+import csv
+
+from xsiftx.tools import enter_lms
+enter_lms(sys.argv[1], sys.argv[2])
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.cache import get_cache
+from django.dispatch import Signal
+from django.http import HttpResponse
+from request_cache.middleware import RequestCache
+
+from courseware.courses import get_course_by_id
+from instructor.views.legacy import (
+    get_student_grade_summary_data,
+    _do_remote_gradebook
+)
+from instructor.utils import DummyRequest
+from xmodule.modulestore.django import modulestore
+
+ROBOT_USER = User(username='xsiftx', email='xsiftx@example.com')
+
+# Build a cache to speed things up
+CACHE = get_cache('mongo_metadata_inheritance')
+
+for store_name in settings.MODULESTORE:
+    store = modulestore(store_name)
+    store.metadata_inheritance_cache_subsystem = CACHE
+    store.request_cache = RequestCache.get_request_cache()
+
+    modulestore_update_signal = Signal(providing_args=[
+        'modulestore', 'course_id', 'location',
+    ])
+    store.modulestore_update_signal = modulestore_update_signal
+
+
+class InvalidAssignmentException(Exception):
+    """
+    Exception if the assignemnt wasn't found in the course.
+    """
+    pass
+
+
+def return_csv(func, datatable, file_pointer=None):
+    """Outputs a CSV file from the contents of a datatable."""
+    if file_pointer is None:
+        response = HttpResponse(mimetype='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={0}'.format(
+            func
+        )
+    else:
+        response = file_pointer
+    writer = csv.writer(
+        response,
+        dialect='excel',
+        quotechar='"',
+        quoting=csv.QUOTE_ALL
+    )
+    encoded_row = [unicode(s).encode('utf-8') for s in datatable['header']]
+    writer.writerow(encoded_row)
+    for datarow in datatable['data']:
+        # 's' here may be an integer, float (eg score) or string (eg
+        # student name)
+        encoded_row = [
+            # If s is already a UTF-8 string, trying to make a unicode
+            # object out of it will fail unless we pass in an encoding to
+            # the constructor. But we can't do that across the board,
+            # because s is often a numeric type. So just do this.
+            s if isinstance(s, str) else unicode(s).encode('utf-8')
+            for s in datarow
+        ]
+        writer.writerow(encoded_row)
+    return response
+
+
+def post_grades(course, assignment_name):
+    """Posts grade to course's remote gradebook
+
+    Args:
+      course (course xmodule): The course to use for exporting
+      assignment_name (str): Assignment name to use. If set to
+        None, send all assignments to gradebook
+
+    Returns:
+      list: Returns a list of tuples of responses for each
+        assignment posted to the remote gradebook.  If the
+
+    Raises:
+      InvalidAssignmentException: If assignment_name is specified
+        and isn't in the course.
+    """
+
+    datatable = {}
+    return_list = []
+    allgrades = get_student_grade_summary_data(
+        DummyRequest(), course, course.id, get_grades=True
+    )
+    if (assignment_name is not None
+            and assignment_name not in allgrades['assignments']):
+        raise InvalidAssignmentException
+    else:
+        # Make list of assignments to grade to simplify logic now that
+        # we support grading all the assignments
+        if assignment_name:
+            assignment_list = allgrades['assignments'].index(assignment_name)
+        else:
+            assignment_list = allgrades['assignments']
+        for assignment in assignment_list:
+            assignment_index = allgrades['assignments'].index(assignment)
+            datatable = {
+                'header': [
+                    'External email',
+                    allgrades['assignments'][assignment_index]
+                ]
+            }
+            data_body = []
+
+            # do one by one in case there is a student who has only
+            # partial grades
+            for student in allgrades['students']:
+                try:
+                    data_body.append(
+                        [student.email, student.grades[assignment_index]]
+                    )
+                except IndexError:
+                    # No grade for assignment and student combination
+                    pass
+            datatable['data'] = data_body
+            datatable['title'] = 'Grades for assignment "{name}"'.format(
+                name=assignment_name
+            )
+
+            # Build CSV file and pass to remote grade API handler
+            file_pointer = StringIO.StringIO()
+            return_csv('', datatable, file_pointer=file_pointer)
+            file_pointer.seek(0)
+            files = {'datafile': file_pointer}
+            msg, data_table = _do_remote_gradebook(
+                ROBOT_USER, course, 'post-grades', files=files
+            )
+            return_list.append((msg, data_table))
+    return return_list
+
+if __name__ == "__main__":
+    help_txt = ("Export specified assignment or all assignments to remote"
+                "Gradebook.\n"
+                "Note: Report generated by this sifter is remote API output.\n"
+                "Usage: remote_grades <assignment_name>")
+    if len(sys.argv) > 5:
+        sys.stderr('Invalid usage.\n{0}\n'.format(help_txt))
+        sys.exit(-1)
+
+    course_id = sys.argv[3]
+    assignment_name = sys.argv[4] if len(sys.argv) == 5 else None
+
+    try:
+        course = get_course_by_id(course_id)
+    except Exception:
+        if course_id in modulestore().courses:
+            course = modulestore().courses[course_id]
+        else:
+            sys.stderr.write("Sorry, can't find course {0}\n".format(
+                course_id
+            ))
+            sys.stderr.write('Please provide a course ID or course data '
+                             'directory name, eg content-mit-801rq')
+            sys.exit(-2)
+
+    # Create file name
+    print("remote_grades_report.html")
+    report_output = ""
+    # Now we have everything we need to run.
+    try:
+        return_list = post_grades(course, assignment_name)
+        report_output = '<br />'.join(
+            '{}<br /><pre>{}</pre>'.format(*ret_tuple)
+            for ret_tuple in return_list
+        )
+    except InvalidAssignmentException:
+        sys.stderr.write(
+            'Invalid assignment name: {0}\n'.format(assignment_name)
+        )
+        sys.exit(-3)
+    print(report_output)
