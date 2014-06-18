@@ -148,3 +148,9 @@ Several sifters are provided in this repository:
 - `compute_grades` -- Doesn't generate a report but does calculate
   grades for a course and stores them in the SQL data store for use by
   legacy dashboard actions.
+
+- `remote_grades` -- Posts a course's grades to a remote gradebook
+  specified in the the course's XML and as defined by the edx-platform
+  feature flag `REMOTE_GRADEBOOK_URL`.  It optionally takes an
+  assignment name, but will post grades for every assignment if one
+  isn't specified.
