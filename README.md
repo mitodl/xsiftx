@@ -154,3 +154,16 @@ Several sifters are provided in this repository:
   feature flag `REMOTE_GRADEBOOK_URL`.  It optionally takes an
   assignment name, but will post grades for every assignment if one
   isn't specified.
+
+
+## Adding additional sifters ##
+
+In addition to the provided sifters, you can add additional sifters
+via a couple methods.  The command searches for executable files first
+in the installation, then at a system location
+`/usr/local/share/xsiftx/sifters`, then in a user directory
+`~/sifters`, then in your current directory `$(cwd)/sifters`, and
+finally by an environment variable `SIFTER_DIR`.  The order of
+preference is first to last from above, so if you have a sifter with
+the same name in `SIFTER_DIR` and `~/sifters`, the one in `SIFTER_DIR`
+would be what is called by xsiftx.
