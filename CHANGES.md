@@ -1,5 +1,9 @@
 # Change Log #
 
+## 0.7.0
+
+- Added system shared sifter search path
+
 ## 0.6.0
 
 - Added new sifter that will export student grade to a remote gradebook
