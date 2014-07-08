@@ -43,7 +43,7 @@ def get_sifters():
     # to replace sifter dictionary
     sifter_paths = [
         os.path.dirname(xsiftx.sifters.__file__),  # Installed sifters
-        os.path.dirname('/usr/local/share/xsiftx/sifters'),  # System sifters
+        os.path.dirname('/usr/local/share/xsiftx/sifters/'),  # System sifters
         os.path.join(os.path.expanduser('~'), 'sifters'),  # HOME_DIR sifters
         os.path.join(os.getcwd(), 'sifters'),  # cwd sifters
         os.environ.get('SIFTER_DIR', ''),  # Environment set sifters
