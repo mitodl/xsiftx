@@ -4,7 +4,6 @@ This script generates a zipfile of csv files of student responses to problems
 """
 
 import os
-import json
 import csv
 import re
 import sys
@@ -19,25 +18,22 @@ from xsiftx.tools import enter_lms
 enter_lms(sys.argv[1], sys.argv[2])
 
 from collections import OrderedDict
-from django.conf import settings
 from django.core.cache import get_cache
 from django.dispatch import Signal
 from request_cache.middleware import RequestCache
 
 from courseware.views import *
 from xmodule.modulestore.django import modulestore
-
+from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
 CACHE = get_cache('mongo_metadata_inheritance')
-for store_name in settings.MODULESTORE:
-    store = modulestore(store_name)
-    store.metadata_inheritance_cache_subsystem = CACHE
-    store.request_cache = RequestCache.get_request_cache()
-
-    modulestore_update_signal = Signal(providing_args=[
-        'modulestore', 'course_id', 'location',
-    ])
-    store.modulestore_update_signal = modulestore_update_signal
+store = modulestore()
+store.metadata_inheritance_cache_subsystem = CACHE
+store.request_cache = RequestCache.get_request_cache()
+modulestore_update_signal = Signal(providing_args=[
+    'modulestore', 'course_id', 'location',
+])
+store.modulestore_update_signal = modulestore_update_signal
 
 
 class CourseAxis(object):
@@ -46,26 +42,15 @@ class CourseAxis(object):
         course_id should be eg: MITx/3.091r/2013_Fall
         '''
         self.course_id = course_id
-        self.loc = '{0}/{1}/course/{2}'.format(*course_id.split('/'))
-        self.ms = modulestore()
-        self.course = self.ms.get_item('i4x://{0}'.format(self.loc))
-        self.modules = []
-        self.walk_tree(self.course)
 
-    def walk_tree(self, node):
-        '''
-        walk the course tree and store as flat list in presented order
-        '''
-        self.modules.append(node)
-        if getattr(node, 'children', None) is None:
-            return
-        for loc in node.children:
-            try:
-                module = self.ms.get_item(str(loc))
-                self.walk_tree(module)
-            except Exception as err:
-                sys.stderr.write("Failed to get module {0}, "
-                                 "error={0!r}\n".format(loc, err))
+        # Get course locator
+        #self.course = CourseLocator(*tuple(course_id.split('/')))  # org, course, run
+        # necessary for comparison with CourseKeyField
+        self.course = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+
+        # Get flat XModuleDescriptor list for course
+        self.ms = modulestore()
+        self.modules = self.ms.get_items(self.course)
 
     def get_problems(self):
         '''
@@ -133,9 +118,10 @@ class XProblemAnalyzer(object):
 
         '''
         smset = StudentModule.objects.filter(
-            module_state_key=str(problem.location),
-            course_id=self.course_id
+            module_state_key=problem.scope_ids.usage_id,
+            course_id=self.ca.course
         )
+
         self.smset = smset
         # reset state to being empty
         self.data = OrderedDict()
