@@ -11,7 +11,6 @@ import csv
 from xsiftx.tools import enter_lms
 enter_lms(sys.argv[1], sys.argv[2])
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import get_cache
 from django.dispatch import Signal
@@ -24,22 +23,20 @@ from instructor.views.legacy import (
     _do_remote_gradebook
 )
 from instructor.utils import DummyRequest
+from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from xmodule.modulestore.django import modulestore
 
 ROBOT_USER = User(username='xsiftx', email='xsiftx@example.com')
 
 # Build a cache to speed things up
-CACHE = get_cache('mongo_metadata_inheritance')
-
-for store_name in settings.MODULESTORE:
-    store = modulestore(store_name)
-    store.metadata_inheritance_cache_subsystem = CACHE
-    store.request_cache = RequestCache.get_request_cache()
-
-    modulestore_update_signal = Signal(providing_args=[
-        'modulestore', 'course_id', 'location',
-    ])
-    store.modulestore_update_signal = modulestore_update_signal
+cache = get_cache('mongo_metadata_inheritance')
+store = modulestore()
+store.metadata_inheritance_cache_subsystem = cache
+store.request_cache = RequestCache.get_request_cache()
+modulestore_update_signal = Signal(providing_args=[
+    'modulestore', 'course_id', 'location',
+])
+store.modulestore_update_signal = modulestore_update_signal
 
 
 class InvalidAssignmentException(Exception):
@@ -98,11 +95,11 @@ def post_grades(course, assignment_name):
         and isn't in the course.
     """
 
-    datatable = {}
     return_list = []
     allgrades = get_student_grade_summary_data(
-        DummyRequest(), course, course.id, get_grades=True
+        DummyRequest(), course, get_grades=True
     )
+
     if (assignment_name is not None
             and assignment_name not in allgrades['assignments']):
         raise InvalidAssignmentException
@@ -161,18 +158,17 @@ if __name__ == "__main__":
     course_id = sys.argv[3]
     assignment_name = sys.argv[4] if len(sys.argv) == 5 else None
 
+    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+
     try:
-        course = get_course_by_id(course_id)
+        course = get_course_by_id(course_key)
     except Exception:
-        if course_id in modulestore().courses:
-            course = modulestore().courses[course_id]
-        else:
-            sys.stderr.write("Sorry, can't find course {0}\n".format(
-                course_id
-            ))
-            sys.stderr.write('Please provide a course ID or course data '
-                             'directory name, eg content-mit-801rq')
-            sys.exit(-2)
+        sys.stderr.write("Sorry, can't find course {0}\n".format(
+            course_id
+        ))
+        sys.stderr.write('Please provide a course ID or course data '
+                         'directory name, eg content-mit-801rq')
+        sys.exit(-2)
 
     # Create file name
     print("remote_grades_report.html")

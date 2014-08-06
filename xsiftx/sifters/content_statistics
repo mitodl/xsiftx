@@ -12,26 +12,24 @@ from xsiftx.tools import enter_lms
 enter_lms(sys.argv[1], sys.argv[2])
 
 from collections import OrderedDict
-from django.conf import settings
 from django.core.cache import get_cache
 from django.dispatch import Signal
 from request_cache.middleware import RequestCache
 
 from courseware.views import *
+from opaque_keys.edx.locator import CourseLocator
 from student.roles import CourseStaffRole
 from xmodule.modulestore.django import modulestore
 
 
-CACHE = get_cache('mongo_metadata_inheritance')
-for store_name in settings.MODULESTORE:
-    store = modulestore(store_name)
-    store.metadata_inheritance_cache_subsystem = CACHE
-    store.request_cache = RequestCache.get_request_cache()
-
-    modulestore_update_signal = Signal(providing_args=[
-        'modulestore', 'course_id', 'location',
-    ])
-    store.modulestore_update_signal = modulestore_update_signal
+cache = get_cache('mongo_metadata_inheritance')
+store = modulestore()
+store.metadata_inheritance_cache_subsystem = cache
+store.request_cache = RequestCache.get_request_cache()
+modulestore_update_signal = Signal(providing_args=[
+    'modulestore', 'course_id', 'location',
+])
+store.modulestore_update_signal = modulestore_update_signal
 
 
 class CourseAxis(object):
@@ -40,27 +38,15 @@ class CourseAxis(object):
         course_id should be eg: MITx/3.091r/2013_Fall
         '''
         self.course_id = course_id
-        self.loc = '%s/%s/course/%s' % tuple(course_id.split('/'))
+
+        # Get course locator
+        self.course = CourseLocator(*tuple(course_id.split('/')))  # org, course, run
+
+        # Get flat XModuleDescriptor list for course
         self.ms = modulestore()
-        self.course = self.ms.get_item('i4x://%s' % self.loc)
-        self.modules = []
-        self.walk_tree(self.course)
+        self.modules = self.ms.get_items(self.course)
+
         self.compute_statistics()
-
-
-    def walk_tree(self, node):
-        '''
-        walk the course tree and store as flat list in presented order
-        '''
-        self.modules.append(node)
-        if getattr(node, 'children',None) is None:
-            return
-        for loc in node.children:
-            try:
-                module = self.ms.get_item(loc)
-                self.walk_tree(module)
-            except Exception as err:
-                sys.stderr.write("Failed to get module {0}\n".format(loc))
 
 
     def compute_statistics(self):
@@ -69,7 +55,7 @@ class CourseAxis(object):
         differentiate those with empty state
         '''
         self.stats = OrderedDict()
-        staff_role = CourseStaffRole(self.course.location)
+        staff_role = CourseStaffRole(self.course)
         for node in self.modules:
             smq = StudentModule.objects.filter(
                 module_state_key=node.location, student__is_staff=False
