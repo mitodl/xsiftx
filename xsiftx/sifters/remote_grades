@@ -23,15 +23,15 @@ from instructor.views.legacy import (
     _do_remote_gradebook
 )
 from instructor.utils import DummyRequest
-from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from xmodule.modulestore.django import modulestore
 
 ROBOT_USER = User(username='xsiftx', email='xsiftx@example.com')
 
 # Build a cache to speed things up
-CACHE = get_cache('mongo_metadata_inheritance')
+cache = get_cache('mongo_metadata_inheritance')
 store = modulestore()
-store.metadata_inheritance_cache_subsystem = CACHE
+store.metadata_inheritance_cache_subsystem = cache
 store.request_cache = RequestCache.get_request_cache()
 modulestore_update_signal = Signal(providing_args=[
     'modulestore', 'course_id', 'location',
