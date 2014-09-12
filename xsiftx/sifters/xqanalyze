@@ -12,6 +12,7 @@ import tempfile
 import datetime
 import zipfile
 import glob
+import json
 
 # Setup environment here, before importing project specific stuff
 from xsiftx.tools import enter_lms
@@ -188,6 +189,8 @@ class XProblemAnalyzer(object):
                 if type(response) == list:
                     # for multi-answer multiple-choice
                     response = str(response)
+                if type(response) == dict:
+                    response = json.dumps(response)
                 if response is not None:
                     try:
                         response = response.encode('utf8')
