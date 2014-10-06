@@ -1,1 +1,3 @@
 recursive-include xsiftx/sifters *
+recursive-include xsiftx/lti/templates *
+recursive-include xsiftx/lti/static *
