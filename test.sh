@@ -87,6 +87,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export XSIFTX_CONFIG="$DIR/xsiftx/tests/config/xsiftx_config.yml"
 
 nosetests --with-coverage --cover-html --cover-package=xsiftx
+test_results=$?
 
 if $quality; then
 	# Show nice reports
@@ -111,10 +112,26 @@ if $coveralls; then
 	rm $DIR/.coveralls.yml
 fi
 
+exit_code=0
+
+if [[ $test_results -ne 0 ]]; then
+	echo "Unit tests failed, failing test"
+	exit_code=$[exit_code + 1]
+fi
+
 if [[ pylint_violations!="" && pylint_violations -gt MAX_PYLINT_VIOLATIONS ]]; then
-	exit 1
+	echo "$pylint_violations is too many PyLint Violations, failing test (allowed $MAX_PYLINT_VIOLATIONS)"
+	exit_code=$[exit_code + 1]
+else
+	echo "$pylint_violations pylint violations: OK"
 fi
 
 if [[ pep8_violations!="" && pep8_violations -gt MAX_PEP8_VIOLATIONS ]]; then
-	exit 1
+	echo "$pep8_violations is too many PEP-8 Violations, failing test (allowed $MAX_PEP8_VIOLATIONS"	
+	exit_code=$[exit_code + 1]
+else
+	echo "$pep8_violations pep8 violations: OK"
 fi
+
+
+exit $exit_code
