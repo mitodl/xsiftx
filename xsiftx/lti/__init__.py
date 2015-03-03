@@ -17,12 +17,10 @@ from flask import (
     jsonify,
     make_response,
 )
+from pylti.flask import lti
 
-from .decorators import lti_authentication, lti_staff_required
 from .util import (
     InvalidAPIUsage,
-    LTIException,
-    LTIRoleException,
     get_allowed_sifters
 )
 from xsiftx.config import settings, get_consumer, VENV, EDX_PLATFORM
@@ -60,9 +58,23 @@ celery = Celery(
 celery.conf.update(settings)
 
 
+def handle_lti_error(exception):
+    """Return LTI error"""
+    # Return json if this is from an API call or html
+    # if not.
+    if '/api/{0}'.format(API_VERSION) in request.url:
+        response = jsonify({'message': unicode(exception)})
+    else:
+        response = make_response(render_template(
+            'lti_error.html',
+            message=unicode(exception)
+        ))
+    response.status_code = 401
+    return response
+
+
 @xsiftx_lti.route('/', methods=['GET', 'POST'])
-@lti_authentication
-@lti_staff_required
+@lti(request='any', error=handle_lti_error, roles='staff', app=xsiftx_lti)
 def index():
     """
     Show the xsift interface page
@@ -77,7 +89,7 @@ def index():
 
 
 @xsiftx_lti.route('/api/{0}/run'.format(API_VERSION), methods=['POST'])
-@lti_authentication
+@lti(request='any', error=handle_lti_error, roles='staff', app=xsiftx_lti)
 def run():
     """
     Runs a given sifter for the course in the LTI component.
@@ -121,7 +133,7 @@ def run():
     '/api/{0}/update_task_status'.format(API_VERSION),
     methods=['PUT']
 )
-@lti_authentication
+@lti(request='any', error=handle_lti_error, roles='staff', app=xsiftx_lti)
 def get_task_status():
     """
     Grabs a status of all the tasks that are stored in the session
@@ -141,7 +153,7 @@ def get_task_status():
 @xsiftx_lti.route(
     '/api/{0}/clear_complete_tasks'.format(API_VERSION),
     methods=['DELETE'])
-@lti_authentication
+@lti(request='any', error=handle_lti_error, roles='staff', app=xsiftx_lti)
 def clear_complete_tasks():
     """
     Nukes completed tasks from the session store
@@ -183,28 +195,3 @@ def web_run_sifter(sifter, course, extra_args):
         'sifter': os.path.basename(sifter),
         'error': error,
     }
-
-
-@xsiftx_lti.errorhandler(InvalidAPIUsage)
-def handle_invalid_api_usage(error):
-    """Return jsonified error message"""
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
-
-
-@xsiftx_lti.errorhandler(LTIException)
-@xsiftx_lti.errorhandler(LTIRoleException)
-def handle_lti_error(error):
-    """Return LTI error"""
-    # Return json if this is from an API call or html
-    # if not.
-    if '/api/{0}'.format(API_VERSION) in request.url:
-        response = jsonify({'message': unicode(error)})
-    else:
-        response = make_response(render_template(
-            'lti_error.html',
-            message=unicode(error)
-        ))
-    response.status_code = 401
-    return response

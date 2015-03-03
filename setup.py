@@ -39,9 +39,9 @@ setup(
     install_requires=[
         'boto >= 2.13.3',
         'flask',
-        'oauth',
         'celery',
         'PyYAML',
+        'pylti',
         ],
     classifiers=[
         'Development Status :: 3 - Alpha',

@@ -7,12 +7,12 @@ import os
 import time
 import unittest
 
+from pylti.common import LTI_ROLES
 from mock import patch
 
 import xsiftx.config
 from xsiftx.config import get_config, get_consumer, XsiftxNoConfigException
 from xsiftx.util import get_sifters
-from xsiftx.lti.decorators import LTI_STAFF_ROLES
 import xsiftx.web
 
 
@@ -100,45 +100,6 @@ class TestLTIWebApp(unittest.TestCase):
         os.environ['XSIFTX_CONFIG'] = conf_save
         xsiftx.config.CONFIG_PATHS = config_path_save
 
-    @patch('xsiftx.lti.oauthstore.log')
-    def test_no_consumers(self, mock_logging):
-        """
-        Make sure we handle a lack of conumers altogether well
-        """
-        saved_consumers = xsiftx.config.settings['consumers']
-        del xsiftx.config.settings['consumers']
-
-        response = self.client.post('/', data=self._oauth_request())
-        self.assertEquals(response.status_code, 401)
-        self.assertTrue(mock_logging.critical.called_with(
-            "No consumers defined in settings."
-            "Have you created a configuration file?"
-        ))
-
-        # Restore
-        xsiftx.config.settings['consumers'] = saved_consumers
-
-    @patch('xsiftx.lti.oauthstore.log')
-    def test_consumer_without_secret(self, mock_logging):
-        """
-        Test a consumer that is missing a secret.
-        """
-        keyless_consumer = 2
-        response = self.client.post(
-            '/',
-            data=self._oauth_request(
-                {'oauth_secret': 'test&'},
-                keyless_consumer
-            )
-        )
-        self.assertEquals(response.status_code, 401)
-        self.assertTrue(mock_logging.critical.called_with(
-            'Consumer {0}, is missing secret'
-            'in settings file, and needs correction.'.format(
-                self.settings['consumers'][keyless_consumer]['key']
-            )
-        ))
-
     def test_lti_authentication(self):
         """
         Test out that LTI authentication is working properly
@@ -224,7 +185,7 @@ class TestLTIWebApp(unittest.TestCase):
         """
         Several tests of the index page
         """
-        params = self._oauth_request({'roles': LTI_STAFF_ROLES[0]})
+        params = self._oauth_request({'roles': LTI_ROLES['instructor']})
         response = self.client.post('/', data=params)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
@@ -241,7 +202,7 @@ class TestLTIWebApp(unittest.TestCase):
         with xsiftx.web.app.test_client() as client:
             consumer_id = 0
             params = self._oauth_request(
-                {'roles': LTI_STAFF_ROLES[0]},
+                {'roles': LTI_ROLES['instructor']},
                 consumer_id
             )
             response = client.post('/', data=params)
@@ -261,7 +222,7 @@ class TestLTIWebApp(unittest.TestCase):
         with xsiftx.web.app.test_client() as client:
             consumer_id = 1
             params = self._oauth_request(
-                {'roles': LTI_STAFF_ROLES[0]},
+                {'roles': LTI_ROLES['instructor']},
                 consumer_id
             )
             response = client.post('/', data=params)
