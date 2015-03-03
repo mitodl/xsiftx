@@ -60,8 +60,8 @@ def lti_authentication(func):
         log.debug(params)
 
         # If we are already authenticated and not requesting oauth, return
-        if (session.get(LTI_SESSION_KEY, False)
-                and not params.get('oauth_consumer_key', None)):
+        if (session.get(LTI_SESSION_KEY, False) and
+                not params.get('oauth_consumer_key', None)):
             return func(*args, **kwargs)
 
         # Clear session to ensure authorization is happening fresh for
