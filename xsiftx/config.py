@@ -86,6 +86,14 @@ def get_config():
     if not conf.get(EDX_PLATFORM[0], None):
         conf[EDX_PLATFORM[0]] = EDX_PLATFORM[1]
 
+    # Map our config to the one PyLTI expects
+    consumer_hash = {}
+    PYLTI_CONFIG = {'consumers': consumer_hash}
+    for consumer in conf.get('consumers', []):
+        if consumer.get('key', False) and consumer.get('secret', False):
+            consumer_hash[consumer['key']] = consumer['secret']
+    conf['PYLTI_CONFIG'] = PYLTI_CONFIG
+
     return conf
 
 settings = get_config()  # pylint: disable=C0103

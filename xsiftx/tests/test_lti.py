@@ -8,7 +8,6 @@ import time
 import unittest
 
 from pylti.common import LTI_ROLES
-from mock import patch
 
 import xsiftx.config
 from xsiftx.config import get_config, get_consumer, XsiftxNoConfigException
@@ -76,6 +75,20 @@ class TestLTIWebApp(unittest.TestCase):
                  'secret': 'test_secret2', },
                 {'key': 'testo', },
             ]
+        )
+        # Verify PyLTI config (won't accept partials)
+        self.assertEqual(
+            self.settings['PYLTI_CONFIG'],
+            {
+                'consumers': {
+                    'test_course1': {
+                        'secret': 'test_secret1',
+                    },
+                    'test_course2': {
+                        'secret': 'test_secret2'
+                    }
+                }
+            }
         )
 
         # Test consumer search
