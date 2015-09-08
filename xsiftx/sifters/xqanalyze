@@ -23,6 +23,7 @@ from django.core.cache import get_cache
 from django.dispatch import Signal
 from request_cache.middleware import RequestCache
 
+from courseware.models import StudentModule
 from courseware.views import *
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from xmodule.modulestore.django import modulestore
@@ -81,7 +82,7 @@ class XProblemAnalyzer(object):
             dirname = '{0}/student_responses_{1}_{2}'.format(
                 tmpdir,
                 course_id.replace('/', '__'),
-                datetime.datetime.now().strftime('%Y-%m-%d')
+                datetime.now().strftime('%Y-%m-%d')
             )
             os.mkdir(dirname)
             self.output_fn = "{0}/xqa".format(dirname)
