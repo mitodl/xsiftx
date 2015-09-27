@@ -2,10 +2,10 @@ nose
 coverage
 boto
 flask
-oauth
 celery
 mock
 PyYAML
 pep8
 pylint
 diff-cover
+pylti
